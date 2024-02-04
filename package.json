@@ -29,7 +29,7 @@
     "build": "GENERATE_SOURCEMAP=false BUILD_PATH='./docs' react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "postbuild": "cp ./CNAME ./docs/CNAME && cp ./docs/index.html ./docs/tokens/index.html"
+    "postbuild": "cp ./docs/index.html ./docs/tokens/index.html"
   },
   "eslintConfig": {
     "extends": [
