@@ -1,0 +1,30 @@
+.custom-toast {
+    position: relative;
+}
+.custom-toast--clipboard{
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translate(0, -50%);
+}
+.custom-toast:hover .custom-toast--clipboard{
+    display: block;
+}
+
+.toast-wrapper {
+    background-color: #1f2639!important;
+    border: 1px solid #E8FFCE;
+    text-align: left;
+    border-radius: 12px!important;
+}
+
+.toast-header {
+    color: #E8FFCE;
+    padding-left: 8px;
+}
+
+.toast-body {
+    padding: 8px;
+    color: #E8FFCE;
+}

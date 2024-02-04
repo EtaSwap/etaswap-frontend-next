@@ -1,0 +1,18 @@
+.tokensHeader{
+    text-align: center;
+    mb: 5px;
+}
+.tokensContainer{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin: 0 auto;
+    align-items: center;
+    justify-content: center
+}
+
+.pulsating-img-container {
+    position: relative;
+    display: inline-block;
+}

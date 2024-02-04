@@ -1,0 +1,504 @@
+.App {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1;
+}
+
+.networkLogo,
+.networkLogoModal {
+  width: 36px;
+  height: 36px;
+  margin-right: 20px;
+}
+
+.logo {
+  width: 36px;
+  height: 36px;
+}
+
+.eth{
+  width: 20px;
+  height: 20px;
+  padding-right: 10px;
+
+}
+
+.connectButton {
+  background-color: #243056;
+  padding: 10px;
+  padding-right: 20px;
+  padding-left: 20px;
+  border-radius: 100px;
+  color: #E8FFCE;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.connectButton:hover {
+  cursor: pointer;
+  color: #E8FFCE;
+  background-color: #364881;
+}
+
+.disconnectIcon {
+  width: 20px;
+  height: 20px;
+  margin-left: 4px;
+  vertical-align: top;
+}
+
+.walletIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+.mainWindow {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;
+}
+
+.link {
+  text-decoration: none;
+  color: #1f2639;
+  padding: 10px 15px;
+  border-radius: 5px;
+  font-weight: 500;
+  transition: 0.3s;
+  display: flex;
+  align-items: center;
+}
+
+.link:hover {
+  background-color: rgb(34, 42, 58);
+  color: #E8FFCE;
+}
+
+
+.tradeBox {
+  width: 420px;
+  background-color: #0E111B;
+  border: 2px solid #ACFADF;
+  min-height: 300px;
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding-left: 30px;
+  padding-right: 30px;
+  color: #E8FFCE;
+}
+
+
+.tradeBoxHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  color: #E8FFCE;
+}
+
+.cog {
+  color: #E8FFCE;
+  transition: 0.3s;
+}
+
+.cog:hover {
+  color: white;
+  rotate: 90deg;
+  cursor: pointer;
+}
+
+.switchButton {
+  background-color: #3a4157;
+  width: 25px;
+  height: 25px;
+  align-items: center;
+  justify-content: center;
+  display: flex;
+  border-radius: 8px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: -12px;
+  margin-left: -12px;
+  color: #5F6783;
+  border: 3px solid #0E111B;
+  font-size: 12px;
+  transition: 0.3s
+}
+
+.dollarAmount {
+  position: absolute;
+  top: 75px;
+  left: 14px;
+  font-size: 10px;
+  color: #5F6783;
+}
+
+.switchButton:hover {
+  color: white;
+  cursor: pointer;
+}
+
+.inputs {
+  position: relative;
+  width: 100%;
+}
+
+.assetOne {
+  position: absolute;
+  height: 30px;
+  top: 36px;
+  right: 10px;
+  border-radius: 100px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 5px;
+  font-weight: bold;
+  font-size: 17px;
+  padding-right: 8px;
+}
+
+.assetTwo {
+  position: absolute;
+  height: 30px;
+  top: 135px;
+  right: 10px;
+  border-radius: 100px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 5px;
+  font-weight: bold;
+  font-size: 17px;
+  padding-right: 8px;
+}
+
+.assetOne:hover{
+  cursor: pointer;
+}
+
+.assetTwo:hover{
+  cursor: pointer;
+}
+
+.assetOne .logo,
+.assetTwo .logo{
+  padding-right: 0;
+}
+
+.assetLogo {
+  height: 22px;
+  margin-left: 5px;
+}
+
+.swapButton {
+  border: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #283660;
+  width: calc(100%);
+  height: 55px;
+  font-size: 20px;
+  border-radius: 12px;
+  color: #E8FFCE;
+  font-weight: bold;
+  transition: 0.3s;
+  margin-bottom: 30px;
+  margin-top: 8px;
+}
+
+.swapButton[disabled] {
+  background-color: #243056;
+  opacity: 0.4;
+  color: rgba(232, 255, 206, 0.5);
+}
+
+.swapButton[disabled]:hover {
+  cursor: not-allowed;
+  background-color: #243056;
+}
+
+.swapButton:hover {
+  cursor: pointer;
+  background-color: #3b4874
+}
+
+.tokenLogo {
+  height: 40px;
+  width: 40px;
+}
+
+.modalContent {
+  border-top: 1px solid #363e54;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tokenChoice {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 7px 15px;
+  margin: 0 10px;
+  border-radius: 5px;
+}
+
+.tokenChoice:hover {
+  cursor: pointer;
+  background-color: #1f2639;
+  color: #E8FFCE;
+}
+
+.tokenChoice:hover .tokenTicker {
+  color: #E8FFCE;
+}
+
+.tokenChoiceProviders img {
+  width: 16px;
+  height: 16px;
+  margin: 5px;
+}
+
+.tokenName {
+  margin-left: 10px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.tokenTicker {
+  margin-left: 10px;
+  font-size: 13px;
+  font-weight: 300;
+  color: #969bad;
+}
+
+@keyframes pulsate {
+  0% {
+    transform: scale(0.1, 0.1);
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1.2, 1.2);
+    opacity: 0;
+  }
+}
+
+.ratesLogoWrapper {
+  width: 100%;
+  text-align: left;
+  margin: 5px 0;
+}
+
+.ratesLogoInner{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ratesLogo {
+  padding: 2px;
+  display: block;
+}
+
+.ratesLogoIcon {
+  width: 18px;
+  height: 18px;
+  margin-right: 5px;
+  display: inline-block;
+  vertical-align: top;
+}
+
+.ratesLogoToggle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #283660;
+  font-size: 12px;
+  border-radius: 7px;
+  color: #E8FFCE;
+  font-weight: bold;
+  transition: 0.3s;
+  border: 0;
+  padding: 6px 12px;
+}
+
+.ratesLogoToggle[disabled] {
+  background-color: #243056;
+  opacity: 0.4;
+  color: rgba(232, 255, 206, 0.5);
+}
+
+.ratesLogoToggle:hover {
+  cursor: pointer;
+  background-color: #3b4874
+}
+
+.approx {
+  position: relative;
+}
+
+.approx::before {
+  content: '≈';
+  position: absolute;
+  z-index: 2;
+  font-size: 26px;
+  top: 50%;
+  margin-top: -18px;
+  left: 14px;
+}
+
+.tokenChoice:hover .tokenTicker {
+  color: #E8FFCE;
+}
+
+.walletChoice {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 15px;
+  margin: 0 10px;
+  border-radius: 5px;
+  background: none;
+  border: 0;
+}
+
+.walletChoice:hover {
+  cursor: pointer;
+  background-color: #1f2639;
+  color: #E8FFCE;
+}
+
+.walletChoice:hover .tokenTicker {
+  color: #E8FFCE;
+}
+
+.walletLogo {
+  width: 100%;
+  height: 50px;
+}
+
+.networkLogo {
+  width: 40px;
+  height: 40px;
+}
+
+.assocWarning {
+  padding-top: 10px;
+  font-size: 12px;
+}
+
+.impactError {
+  padding-top: 5px;
+  font-size: 12px;
+  color: #ff4343;
+}
+
+@keyframes refresh {
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.refreshTicker{
+  margin-top: 4px;
+  width: 100%;
+}
+
+.refreshTicker div {
+  height: 3px;
+  transform-origin: left center;
+}
+
+.refreshTicker .active {
+  background: #E8FFCE;
+  animation: refresh 25s linear forwards;
+}
+
+.tokens {
+  width: 1300px;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.social {
+  margin-top: auto;
+  padding: 20px;
+}
+
+.social__image {
+  width: 40px;
+  height: 40px;
+  vertical-align: top;
+}
+
+.not__found-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.not__found {
+  text-align: center;
+  font-size: 50px;
+}
+
+.not__found-details{
+  text-align: center;
+  font-size: 20px;
+}
+
+.version {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  color: #666666;
+  font-size: 0.9em;
+}
+
+.token__search {
+  width: 100%;
+}
+
+.hidden {
+  display: none;
+}
+
+.token__search-field {
+  border-width: 1px;
+  padding: 10px;
+  font-size: 17px;
+  height: auto!important;
+  margin: 10px 10px 0;
+  width: calc(100% - 20px);
+}
+
+@media screen and (max-width: 992px) {
+  .logo {
+    padding-right: 0;
+  }
+
+  .link {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .networkLogo {
+    margin-right: 8px;
+  }
+}
