@@ -20,4 +20,4 @@ jobs:
         git commit -am "Update CNAME file"
     - name: Push changes to fork
       run: |
-        git push "https://${{ secrets.GITHUB_ACTOR }}:${{ secrets.GITHUB_TOKEN }}@github.com/EtaSwap/etaswap-frontend-next-mainnet.git" main
+        git push "https://${{ secrets.GITHUB_ACTOR }}:${{ secrets.GITHUB_TOKEN }}@github.com/EtaSwap/etaswap-frontend-next-mainnet.git" master
