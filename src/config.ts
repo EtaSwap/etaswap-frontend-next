@@ -1,0 +1,49 @@
+import { HSuiteNodeConfig } from './types/config';
+import { SaucerSwapV1 } from './class/providers/saucer-swap-v1';
+import { SaucerSwapV2 } from './class/providers/saucer-swap-v2';
+import { HSuite } from './class/providers/h-suite';
+import { Provider } from './class/providers/provider';
+import tokenListTestnet from './tokenListTestnet.json';
+
+export const NETWORK: string = 'testnet';
+
+export const MIRRORNODE: string = 'https://mainnet-public.mirrornode.hedera.com';
+
+export const TOKEN_LIST: string[] = tokenListTestnet;
+
+export const PROVIDERS: Record<string, Provider> = {
+    SaucerSwapV2: new SaucerSwapV2({
+        getTokensUrl: 'https://test-api.saucerswap.finance/tokens',
+        whbar: '0x0000000000000000000000000000000000003ad1',
+    }),
+    SaucerSwapV1: new SaucerSwapV1({
+        getTokensUrl: 'https://test-api.saucerswap.finance/tokens',
+        whbar: '0x0000000000000000000000000000000000003ad1',
+    }),
+    HSuite: new HSuite({
+        getTokensUrl: 'https://testnet-sn1.hbarsuite.network/tokens/list',
+    })
+};
+
+export const HSUITE_NODES: HSuiteNodeConfig[] = [
+    {
+        operator: '0.0.467726',
+        publicKey: '302a300506032b6570032100ae51a8b5d22e40d68fec62e20488132182f304cddbf5cd494d62cb18a06b71c1',
+        url: 'https://testnet-sn1.hbarsuite.network'
+    },
+    {
+        operator: '0.0.467732',
+        publicKey: '302a300506032b657003210014e45f62427a777c8a5c168115793969c5fa04979b6a40a34c3bff7d20a3b745',
+        url: 'https://testnet-sn2.hbarsuite.network'
+    },
+    {
+        operator: '0.0.467734',
+        publicKey: '302a300506032b65700321002caf57f6153afb61ed70545516886b1621aa93dd22ae79412f5af0cbfcd2b5ab',
+        url: 'https://testnet-sn3.hbarsuite.network'
+    },
+    {
+        operator: '0.0.467737',
+        publicKey: '302a300506032b6570032100452e3d988c2f0e40b6194c7543ec880daaefa29b6c48e590b367bbe22de429d3',
+        url: 'https://testnet-sn4.hbarsuite.network'
+    }
+];

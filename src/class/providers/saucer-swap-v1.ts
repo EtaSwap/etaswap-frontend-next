@@ -6,9 +6,9 @@ import { ContractId } from '@hashgraph/sdk';
 // @ts-ignore
 import SaucerSwapLogo from '../../assets/img/saucerswap.ico';
 
-export class SaucerSwap extends Provider {
+export class SaucerSwapV1 extends Provider {
     public icon = SaucerSwapLogo;
-    public aggregatorId = 'SaucerSwap';
+    public aggregatorId = 'SaucerSwapV1';
     public feePromille = 3;
     public feeDEXPromille = 3;
 

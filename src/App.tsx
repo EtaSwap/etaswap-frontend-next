@@ -14,8 +14,6 @@ import HashpackIcon from './assets/img/hashpack-icon.png';
 import BladeLogo from './assets/img/blade.svg';
 // @ts-ignore
 import BladeIcon from './assets/img/blade-icon.webp';
-import tokenListMainnet from './tokenListMainnet.json';
-import tokenListTestnet from './tokenListTestnet.json';
 import {HashpackWallet} from './class/wallet/hashpack-wallet';
 import {BladeWallet} from './class/wallet/blade-wallet';
 import {NETWORKS} from './utils/constants';
@@ -24,15 +22,11 @@ import pkg from '../package.json';
 import {LoaderProvider} from "./components/Loader/LoaderContext";
 import {ToasterProvider} from "./components/Toaster/ToasterContext";
 import {ToastContainer} from "react-toastify";
-import {IToken, IWallet, IWallets, typeWallet} from "./models";
+import {IWallet, IWallets, typeWallet} from "./models";
 import AppRouter from "./router";
-import { SaucerSwap } from './class/providers/saucer-swap';
-import { Pangolin } from './class/providers/pangolin';
-import { HeliSwap } from './class/providers/heli-swap';
-import { HSuite } from './class/providers/h-suite';
 import { Token } from './types/token';
 import { HeliSwapGetToken, HSuiteGetToken, PangolinGetToken, SaucerSwapGetToken } from './class/providers/types/tokens';
-import {heliSwapDefault, hsuitDefault, pangolinDefault, saucerMapDefault} from "./app.utils";
+import { MIRRORNODE, PROVIDERS, TOKEN_LIST } from './config';
 
 function App() {
     const [wallet, setWallet] = useState<IWallet>({
@@ -60,23 +54,18 @@ function App() {
             icon: BladeIcon,
         },
     });
-    const [providers] = useState({
-        SaucerSwap: new SaucerSwap(saucerMapDefault),
-        Pangolin: new Pangolin(pangolinDefault),
-        HeliSwap: new HeliSwap(heliSwapDefault),
-        HSuite: new HSuite(hsuitDefault),
-    });
+    const [providers] = useState(PROVIDERS);
 
     useEffect(() => {
         wallets.hashpack.instance.connect(network, true);
-        axios.get('https://mainnet-public.mirrornode.hedera.com/api/v1/network/exchangerate').then(rate => {
+        axios.get(`${MIRRORNODE}/api/v1/network/exchangerate`).then(rate => {
             setRate(rate.data.current_rate.hbar_equivalent / rate.data.current_rate.cent_equivalent * 100);
         });
     }, []);
 
     useEffect(() => {
         const tokenPromises = Object.values(providers).map(provider => provider.getTokens(network));
-        const tokenList = new Set(network === NETWORKS.TESTNET ? tokenListTestnet : tokenListMainnet);
+        const tokenList = new Set(TOKEN_LIST);
 
         Promise.all(tokenPromises).then(([
             saucerSwapTokens,
