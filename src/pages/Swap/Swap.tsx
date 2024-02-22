@@ -1,25 +1,18 @@
-import { Input, Popover, message } from 'antd'
+import { Input, message } from 'antd'
 import { ArrowDownOutlined } from '@ant-design/icons'
 import { useState, useEffect, useRef } from 'react'
 import { BigNumber, ethers } from 'ethers';
 import {
     ContractExecuteTransaction,
     ContractFunctionParameters,
-    AccountAllowanceApproveTransaction, Transaction, TransferTransaction, Hbar, HbarUnit,
+    AccountAllowanceApproveTransaction, Transaction, TransferTransaction,
 } from '@hashgraph/sdk';
 import axios from 'axios';
-import BasicOracleABI from '../../assets/abi/basic-oracle-abi.json';
-import { NETWORKS, GAS_LIMITS, HSUITE_NODES } from '../../utils/constants';
+import { GAS_LIMITS } from '../../utils/constants';
 import { SmartNodeSocket } from '../../class/smart-node-socket';
 import { useLoader } from "../../components/Loader/LoaderContext";
 import { useToaster } from "../../components/Toaster/ToasterContext";
-import {
-    defaultOracleContracts,
-    defaultPrices,
-    defaultTokens,
-    exchange,
-    fetchRates
-} from "./swap.utils";
+import { defaultTokens } from "./swap.utils";
 import { SlippageTolerance } from "./Components/SlippageTolerance/SlippageTolerance";
 import { TokensModal } from "./Components/TokensModal/TokensModal";
 import { toastTypes } from "../../models/Toast";
@@ -27,19 +20,17 @@ import { Token } from '../../types/token';
 import { Provider } from '../../class/providers/provider';
 import {IAssociatedButton, typeWallet} from "../../models";
 import useDebounce from "../../hooks/useDebounce";
-import { sqrt } from '../../utils/utils';
 import { SortedPrice } from '../../types/sorted-price';
-import { Price } from '../../class/providers/types/price';
+import { DEFAULT_TOKENS, EXCHANGE_ADDRESS, HSUITE_NODES, MIRRORNODE } from '../../config';
 
 export interface ISwapProps {
     wallet: any;
     tokens: Map<string, Token>;
-    network: string;
     rate: number | null;
     providers: Record<string, Provider>;
 }
 
-function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProps) {
+function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
     const { loading, showLoader, hideLoader } = useLoader();
     const { showToast } = useToaster();
 
@@ -48,12 +39,11 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
     const [tokenTwoAmountInput, setTokenTwoAmountInput] = useState<any>(0);
     const [tokenOneAmount, setTokenOneAmount] = useState<any>(0);
     const [tokenTwoAmount, setTokenTwoAmount] = useState<any>(0);
-    const [tokenOne, setTokenOne] = useState(tokens[0]);
-    const [tokenTwo, setTokenTwo] = useState(tokens[4]);
+    const [tokenOne, setTokenOne] = useState(tokens[DEFAULT_TOKENS[0]]);
+    const [tokenTwo, setTokenTwo] = useState(tokens[DEFAULT_TOKENS[1]]);
 
     const debouncedTokenOneAmountInput: string = useDebounce(tokenOneAmountInput, 500);
     const debouncedTokenTwoAmountInput: string = useDebounce(tokenTwoAmountInput, 500);
-    const [oracleContracts, setOracleContracts] = useState<any>(defaultOracleContracts);
     const [associatedButtons, setAssociatedButtons] = useState<IAssociatedButton[]>([]);
     const [slippage, setSlippage] = useState(1);
     const [feeOnTransfer, setFeeOnTransfer] = useState<boolean>(false);
@@ -66,7 +56,6 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
     const [isRefreshAnimationActive, setIsRefreshAnimationActive] = useState(false);
     const [searchPhrase, setSearchPhrase] = useState('');
     const [hiddenTokens, setHiddenTokens] = useState([]);
-    const [prices, setPrices] = useState<Record<string, Price | null>>(defaultPrices);
     const [sortedPrices, setSortedPrices] = useState<SortedPrice[]>([]);
 
     const smartNodeSocket = async () => {
@@ -76,8 +65,8 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
             }
             try {
                 showLoader();
-                let randomNode = HSUITE_NODES[network][Math.floor(Math.random() * HSUITE_NODES[network].length)];
-                let nodeSocket: any = new SmartNodeSocket(randomNode, wallet.address, providers.HSuite.getApiKey(network));
+                let randomNode = HSUITE_NODES[Math.floor(Math.random() * HSUITE_NODES.length)];
+                let nodeSocket: any = new SmartNodeSocket(randomNode, wallet.address, providers.HSuite.getApiKey());
 
                 nodeSocket.getSocket('gateway').on('connect', async () => {
                     console.log(`account ${wallet.address} connected to node ${nodeSocket.getNode().operator}`);
@@ -158,19 +147,13 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
     }
 
     const switchTokens = () => {
-        setPrices({
-            SaucerSwap: null,
-            Pangolin: null,
-            HeliSwap: null,
-            HSuite: null,
-        });
         setTokenOneAmountInput(0);
         setTokenTwoAmountInput(0);
         setTokenOneAmount(0);
         setTokenTwoAmount(0);
         setTokenOne(tokenTwo);
         setTokenTwo(tokenOne);
-        fetchDexSwap(tokenTwo.solidityAddress, tokenOne.solidityAddress)
+        // fetchDexSwap(tokenTwo.solidityAddress, tokenOne.solidityAddress)
     }
 
     const openModal = (token: number) => {
@@ -179,34 +162,19 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
     }
 
     const modifyToken = (i: any) => {
-        setPrices({
-            SaucerSwap: null,
-            Pangolin: null,
-            HeliSwap: null,
-            HSuite: null,
-        })
         setTokenOneAmountInput(0);
         setTokenTwoAmountInput(0);
         setTokenOneAmount(0);
         setTokenTwoAmount(0);
         if (changeToken === 1) {
-            setTokenOne(tokens[i])
-            fetchDexSwap(tokens[i].solidityAddress, tokenTwo.solidityAddress)
+            setTokenOne(tokens[i]);
+            // fetchDexSwap(tokens[i].solidityAddress, tokenTwo.solidityAddress)
         } else {
-            setTokenTwo(tokens[i])
-            fetchDexSwap(tokenOne.solidityAddress, tokens[i].solidityAddress)
+            setTokenTwo(tokens[i]);
+            // fetchDexSwap(tokenOne.solidityAddress, tokens[i].solidityAddress)
         }
         setIsOpen(false);
         setSearchPhrase('');
-    }
-
-    const fetchDexSwap = async (tokenA: any, tokenB: any, isLoader = true) => {
-        if (isLoader) {
-            showLoader();
-        }
-        const result = await fetchRates(tokenA, tokenB, network, oracleContracts, providers);
-
-        setPrices(result);
     }
 
     const convertPrice = (price: any) => {
@@ -219,10 +187,6 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
 
     const switchAllRates = () => {
         setCheckAllRatesOpen(!checkAllRatesOpen);
-    }
-
-    const isAtLeastOnePrice = () => {
-        return !Object.values(prices).find((price: any) => price?.rate && !price?.rate?.isZero());
     }
 
     const getGasPrice = (providerName: any) => {
@@ -363,7 +327,7 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
                     .approveTokenAllowance(
                         tokenOne.address,
                         wallet?.address,
-                        exchange(network),
+                        EXCHANGE_ADDRESS,
                         // @ts-ignore
                         feeOnTransfer
                             ? ethers.utils.parseUnits(tokenOneAmount, tokenOne.decimals).mul(1000 + slippage * 10).div(1000).toString()
@@ -388,7 +352,7 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
             await new Promise(resolve => setTimeout(resolve, 500));
 
             let swapTransaction = await new ContractExecuteTransaction()
-                .setContractId(exchange(network))
+                .setContractId(EXCHANGE_ADDRESS)
                 .setGas(getGasPrice(bestRate.name))
                 .setFunction("swap", new ContractFunctionParameters()
                     .addString(providers[bestRate.name].aggregatorId)
@@ -432,7 +396,7 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
             if (execTransaction.res?.transactionId) {
                 const idTransaction = `${execTransaction.res.transactionId.substr(0, 4)}${execTransaction.res.transactionId.substr(4).replace(/@/, '-').replace('.', '-')}`;
                 setTimeout(() => {
-                    axios.get(`https://${network}.mirrornode.hedera.com/api/v1/transactions/${idTransaction}`).then(res => {
+                    axios.get(`${MIRRORNODE}/api/v1/transactions/${idTransaction}`).then(res => {
                         if (res?.data?.transactions?.[0]?.result) {
                             showToast('Transaction', `The transaction was successfully processed. Transaction ID: ${execTransaction.res.transactionId}`, toastTypes.success);
                         } else {
@@ -459,10 +423,6 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
         return parseFloat(convertPrice(bestPrice?.price))?.toFixed(6);
     }
 
-    const getBestImpactError = () => {
-        return (sortedPrices?.[0]?.priceImpact || BigNumber.from(0)).gt(2000);
-    }
-
     const swapDisabled = () => {
         const bestPrice = sortedPrices?.[0];
         let availableTokens = false;
@@ -477,7 +437,7 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
             // || availableTokens
             || !wallet?.address
             || !bestPrice?.price
-            || bestPrice?.priceImpact?.gt(2000);
+            || bestPrice?.priceImpact > 20;
     }
 
     const getNetworkFee = () => {
@@ -496,98 +456,62 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
         return rate * gasPrice * approxCost1Gas;
     }
 
+    const fetchPrices = (): void => {
+        //TODO: fetch prices by backend API
+        setTimeout(() => {
+            setSortedPrices([{
+                transactionType: 'SWAP',
+                aggregatorId: 'SaucerSwapV1',
+                path: '0x000100101',
+                amountIn: BigNumber.from('2400000000'),
+                amountOut: BigNumber.from('4000000000'),
+            }, {
+                transactionType: 'SWAP',
+                aggregatorId: 'HSuite',
+                path: '0x0001001014894874874873931111119494949499991111',
+                amountIn: BigNumber.from('2400000000'),
+                amountOut: BigNumber.from('3900000000'),
+            }] as any);
+        }, 700);
+    }
+
     const refreshRate = () => {
         setIsRefreshAnimationActive(false);
         refreshCount.current = refreshCount.current + 2;
         if (tokenOne?.solidityAddress && tokenTwo?.solidityAddress) {
-            fetchDexSwap(tokenOne.solidityAddress, tokenTwo.solidityAddress, false);
+            fetchPrices();
         }
         setTimeout(() => setIsRefreshAnimationActive(true), 0);
         refreshTimer.current = setTimeout(refreshRate, (25000 + 30 * refreshCount.current * refreshCount.current));
     };
 
-    const getSortedPrices = async (): Promise<SortedPrice[]> => {
-        showLoader();
-
-        const sortedPrices = Object.keys(prices)
-            .filter(name => prices[name]?.rate && !prices[name]?.rate?.eq(0))
-            .sort((a, b) => prices[b]!.rate!.sub(prices[a]!.rate!).toString() as any)
-            .map(name => ({name, price: prices[name]!.rate, weight: prices[name]!.weight}));
-
-        const bestPrice = sortedPrices?.[0]?.price;
-        if (!bestPrice || parseFloat(bestPrice.toString()) === 0) {
-            hideLoader();
-            return [];
-        }
-        const pricesRes = [];
-        for (let {name, price, weight} of sortedPrices) {
-            if (!price || !tokenOne?.decimals || !tokenTwo?.decimals) {
-                continue;
-            }
-
-            const priceRes: SortedPrice = { price, weight: weight!, name, priceImpact: BigNumber.from(0), amountOut: BigNumber.from(0) };
-            if (name === 'HSuite') {
-                let amount = '0';
-                const baseToken = tokenOne.solidityAddress === ethers.constants.AddressZero ? 'HBAR' : tokenOne.address;
-                const swapToken = tokenTwo.solidityAddress === ethers.constants.AddressZero ? 'HBAR' : tokenTwo.address;
-                if (feeOnTransfer) {
-                    amount = BigNumber.from(ethers.utils.parseUnits(tokenTwoAmount.toString(), tokenTwo.decimals)).toString();
-                } else {
-                    amount = BigNumber.from(ethers.utils.parseUnits(tokenOneAmount.toString(), tokenOne.decimals)).toString();
-                }
-                const pricePath = feeOnTransfer ? 'price-reverse' : 'price';
-                const res = await axios.get(`https://${network}-sn1.hbarsuite.network/pools/${pricePath}?amount=${amount}&baseToken=${baseToken}&swapToken=${swapToken}`);
-                const data = feeOnTransfer ? res.data?.routing : res.data;
-                priceRes.priceImpact = BigNumber.from(Math.max(...data.map((route: any) => parseFloat(route?.payout?.priceImpact || 0) * 100)).toFixed(0));
-                if (feeOnTransfer) {
-                    priceRes.amountOut = BigNumber.from(ethers.utils.parseUnits(data?.[0]?.payin?.amount, tokenOne.decimals));
-                } else {
-                    priceRes.amountOut = BigNumber.from(ethers.utils.parseUnits(data?.[data.length - 1]?.payout?.amount, tokenTwo.decimals));
-                }
-                pricesRes.push(priceRes);
-            } else {
-                const volume = weight!.pow(2);
-                const Va = sqrt(volume.mul(BigNumber.from(10).pow(18)).div(price));
-                const Vb = volume.div(Va);
-
-                if (feeOnTransfer) {
-                    const amountOut = BigNumber.from(ethers.utils.parseUnits(tokenTwoAmount.toString(), tokenTwo.decimals)).mul(1000 + providers[name].feePromille + providers[name].feeDEXPromille).div(1000);
-                    const VaAfter = amountOut.mul(Va).div(Vb.sub(amountOut));
-                    const priceImpact = amountOut.mul(10000).div(Vb);
-                    priceRes.amountOut = VaAfter;
-                    priceRes.priceImpact = priceImpact;
-                    if (VaAfter.gt(0)) {
-                        pricesRes.push(priceRes);
-                    }
-                } else {
-                    const amountIn = BigNumber.from(ethers.utils.parseUnits(tokenOneAmount.toString(), tokenOne.decimals)).mul(1000 - providers[name].feePromille - providers[name].feeDEXPromille).div(1000);
-                    const VbAfter = amountIn.mul(Vb).div(Va.add(amountIn));
-                    const priceImpact = VbAfter.mul(10000).div(Vb);
-                    priceRes.amountOut = VbAfter;
-                    priceRes.priceImpact = priceImpact;
-                    pricesRes.push(priceRes);
-                }
-            }
-        }
-
-        hideLoader();
-        return pricesRes.sort((a: any, b: any) => feeOnTransfer ? a.amountOut.sub(b.amountOut) : b.amountOut.sub(a.amountOut));
-    }
 
     useEffect(() => {
-        getSortedPrices().then((res: any[]) => { setSortedPrices(res) });
-    }, [prices, tokenOneAmount, tokenTwoAmount]);
+        console.log('qwe')
+        if (!feeOnTransfer && tokenOne?.solidityAddress && tokenTwo?.solidityAddress) {
+            console.log('fetch 1');
+            fetchPrices();
+        }
+    }, [tokenOneAmount]);
 
     useEffect(() => {
-        const bestAmountOut = sortedPrices?.[0]?.amountOut?.toString();
+        if (feeOnTransfer && tokenOne?.solidityAddress && tokenTwo?.solidityAddress) {
+            console.log('fetch 2');
+            fetchPrices();
+        }
+    }, [tokenTwoAmount]);
+
+    useEffect(() => {
         if (feeOnTransfer) {
-            if (tokenTwoAmount && bestAmountOut && parseFloat(bestAmountOut) !== 0) {
-                setTokenOneAmountInput(ethers.utils.formatUnits(bestAmountOut, tokenOne?.decimals));
+            const bestAmountIn = sortedPrices?.[0]?.amountIn?.toString();
+            if (tokenTwoAmount && bestAmountIn) {
+                setTokenOneAmountInput(ethers.utils.formatUnits(bestAmountIn, tokenOne?.decimals));
             } else {
                 setTokenOneAmountInput(0);
             }
         } else {
-            if (tokenOneAmount && bestAmountOut && parseFloat(bestAmountOut) !== 0) {
+            const bestAmountOut = sortedPrices?.[0]?.amountOut?.toString();
+            if (tokenOneAmount && bestAmountOut) {
                 setTokenTwoAmountInput(ethers.utils.formatUnits(bestAmountOut, tokenTwo?.decimals));
             } else {
                 setTokenTwoAmountInput(0);
@@ -620,25 +544,15 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
     },[tokenOne, tokenTwo]);
 
     useEffect(() => {
-        setTokenOne(tokens[0]);
-        setTokenTwo(tokens[4]);
-        fetchDexSwap(tokens[0]?.solidityAddress, tokens[4]?.solidityAddress)
-    }, [oracleContracts]);
+        setTokenOne(tokens[DEFAULT_TOKENS[0]]);
+        setTokenTwo(tokens[DEFAULT_TOKENS[1]]);
+    }, [tokensMap]);
 
     useEffect(() => {
         setTokenOneAmountInput(0);
         setTokenTwoAmountInput(0);
         setTokenOneAmount(0);
         setTokenTwoAmount(0);
-        const provider = new ethers.providers.JsonRpcProvider(`https://${network}.hashio.io/api`);
-        setOracleContracts(network === NETWORKS.MAINNET ? {
-            SaucerSwap: new ethers.Contract(providers.SaucerSwap.getOracle(network)!, BasicOracleABI, provider),
-            Pangolin: new ethers.Contract(providers.Pangolin.getOracle(network)!, BasicOracleABI, provider),
-            HeliSwap: new ethers.Contract(providers.HeliSwap.getOracle(network)!, BasicOracleABI, provider),
-        } : {
-            SaucerSwap: new ethers.Contract(providers.SaucerSwap.getOracle(network)!, BasicOracleABI, provider),
-            Pangolin: new ethers.Contract(providers.Pangolin.getOracle(network)!, BasicOracleABI, provider),
-        });
     }, [wallet, tokensMap]);
 
 
@@ -664,7 +578,6 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
                 searchPhrase={searchPhrase}
                 setSearchPhrase={setSearchPhrase}
                 setHiddenTokens={setHiddenTokens}
-                network={network}
                 providers={providers}
             />
             <div className='tradeBox'>
@@ -678,7 +591,6 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
                             placeholder='0'
                             value={tokenOneAmountInput}
                             onChange={changeAmountOne}
-                            disabled={isAtLeastOnePrice()}
                         />
                     </div>
                     <div className={feeOnTransfer ? '' : 'approx'}>
@@ -686,7 +598,6 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
                             placeholder='0'
                             value={tokenTwoAmountInput}
                             onChange={changeAmountTwo}
-                            disabled={isAtLeastOnePrice()}
                         />
                     </div>
                     <div className="switchButton" onClick={switchTokens}>
@@ -701,10 +612,6 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
                         {tokenTwo?.symbol}
                     </div>
                 </div>
-                {/*{associatedButtons.map((e: IAssociatedButton) => <div>
-                    <p>Token {e.name} is not associated with your account</p>
-                </div>)}*/}
-
 
                 <div className='ratesLogoWrapper'>
                     <div className='ratesLogoInner'>
@@ -713,11 +620,11 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
                                 onClick={() => switchAllRates()}>{checkAllRatesOpen ? 'Hide all rates' : 'Show all rates'}</button>
                     </div>
                     {checkAllRatesOpen
-                        ? sortedPrices.map(({ name, price, lowVolume, amountOut, priceImpact }: any) =>
+                        ? sortedPrices.map(({ aggregatorId, amountIn, amountOut }: any) =>
                             <div
-                                className='ratesLogo' key={name}>
-                                <img className='ratesLogoIcon' title={name} src={providers[name].icon}
-                                     alt={name}/> {ethers.utils.formatUnits(amountOut, feeOnTransfer ? tokenOne?.decimals : tokenTwo.decimals)} (impact: {ethers.utils.formatUnits(priceImpact.toString(), 2)}%)
+                                className='ratesLogo' key={aggregatorId}>
+                                <img className='ratesLogoIcon' title={aggregatorId} src={providers[aggregatorId].icon}
+                                     alt={aggregatorId}/> {ethers.utils.formatUnits(feeOnTransfer ? amountIn : amountOut, feeOnTransfer ? tokenOne?.decimals : tokenTwo.decimals)}
                             </div>)
                         : ''
                     }
@@ -736,12 +643,6 @@ function Swap({ wallet, tokens: tokensMap, network, rate, providers }: ISwapProp
                          style={{animationDuration: parseInt(String((25000 + 30 * refreshCount.current * refreshCount.current) / 1000)) + 's'}}></div>
                 </div>
                 <div className='assocWarning'>&#9432; Make sure selected tokens are associated to your account.</div>
-                {getBestImpactError()
-                    ? <div className='impactError'>&#9888; Price impact too high (lack of liquidity).</div>
-                    : ''
-                }
-                <>
-                </>
 
                 <button className='swapButton' onClick={fetchDex} disabled={swapDisabled()}>
                     Swap

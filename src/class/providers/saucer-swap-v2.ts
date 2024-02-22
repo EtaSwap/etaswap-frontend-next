@@ -1,14 +1,14 @@
 import { Provider } from './provider';
-import { Props } from './types/props';
+import { AggregatorId, Props } from './types/props';
 import { SaucerSwapGetToken } from './types/tokens';
 import { Token } from '../../types/token';
 import { ContractId } from '@hashgraph/sdk';
 // @ts-ignore
-import SaucerSwapLogo from '../../assets/img/saucerswap.ico';
+import SaucerSwapLogo from '../../assets/img/saucerswapv2.png';
 
 export class SaucerSwapV2 extends Provider {
     public icon = SaucerSwapLogo;
-    public aggregatorId = 'SaucerSwapV2';
+    public aggregatorId = AggregatorId.SaucerSwapV2;
     public feePromille = 3;
     public feeDEXPromille = 3;
 

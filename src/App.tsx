@@ -1,9 +1,9 @@
 import "./App.css";
-import React, {useState, useEffect} from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from "./components/Header/Header";
-import axios, {AxiosResponse} from 'axios';
-import {ContractId } from '@hashgraph/sdk';
-import {ethers} from 'ethers';
+import axios from 'axios';
+import { ContractId } from '@hashgraph/sdk';
+import { ethers } from 'ethers';
 // @ts-ignore
 import HederaLogo from './assets/img/hedera-logo.png';
 // @ts-ignore
@@ -14,19 +14,19 @@ import HashpackIcon from './assets/img/hashpack-icon.png';
 import BladeLogo from './assets/img/blade.svg';
 // @ts-ignore
 import BladeIcon from './assets/img/blade-icon.webp';
-import {HashpackWallet} from './class/wallet/hashpack-wallet';
-import {BladeWallet} from './class/wallet/blade-wallet';
-import {NETWORKS} from './utils/constants';
+import { HashpackWallet } from './class/wallet/hashpack-wallet';
+import { BladeWallet } from './class/wallet/blade-wallet';
 import Social from './components/Social/Social';
 import pkg from '../package.json';
-import {LoaderProvider} from "./components/Loader/LoaderContext";
-import {ToasterProvider} from "./components/Toaster/ToasterContext";
-import {ToastContainer} from "react-toastify";
-import {IWallet, IWallets, typeWallet} from "./models";
+import { LoaderProvider } from "./components/Loader/LoaderContext";
+import { useToaster } from "./components/Toaster/ToasterContext";
+import { IWallet, IWallets, typeWallet } from "./models";
 import AppRouter from "./router";
 import { Token } from './types/token';
-import { HeliSwapGetToken, HSuiteGetToken, PangolinGetToken, SaucerSwapGetToken } from './class/providers/types/tokens';
-import { MIRRORNODE, PROVIDERS, TOKEN_LIST } from './config';
+import { GetToken, HeliSwapGetToken, HSuiteGetToken, } from './class/providers/types/tokens';
+import { MIRRORNODE, NETWORK, PROVIDERS, TOKEN_LIST } from './config';
+import { toastTypes } from './models/Toast';
+import { AggregatorId } from './class/providers/types/props';
 
 function App() {
     const [wallet, setWallet] = useState<IWallet>({
@@ -35,7 +35,6 @@ function App() {
         signer: null,
     });
     const [tokens, setTokens] = useState<Map<string, Token>>(new Map());
-    const [network, setNetwork] = useState(NETWORKS.MAINNET);
     const [rate, setRate] = useState<number | null>(null);
 
     const [wallets] = useState<IWallets>({
@@ -55,26 +54,77 @@ function App() {
         },
     });
     const [providers] = useState(PROVIDERS);
+    const { showToast } = useToaster();
+
+    const showFallbackToast = (exchangeName: string) => {
+        showToast('Fetch error', `Error loading token list from ${exchangeName}`, toastTypes.warning);
+    }
 
     useEffect(() => {
-        wallets.hashpack.instance.connect(network, true);
+        wallets.hashpack.instance.connect(NETWORK, true);
         axios.get(`${MIRRORNODE}/api/v1/network/exchangerate`).then(rate => {
             setRate(rate.data.current_rate.hbar_equivalent / rate.data.current_rate.cent_equivalent * 100);
         });
-    }, []);
 
-    useEffect(() => {
-        const tokenPromises = Object.values(providers).map(provider => provider.getTokens(network));
-        const tokenList = new Set(TOKEN_LIST);
+        const providersList = Object.values(providers);
+        const tokenPromises = providersList.map(provider => provider.getTokens(NETWORK));
+        const etaSwapTokenList = new Set(TOKEN_LIST);
 
-        Promise.all(tokenPromises).then(([
-            saucerSwapTokens,
-            pangolinTokens,
-            heliswapTokens,
-            hsuiteTokens,
-        ]: (AxiosResponse | null)[]) => {
+        Promise.allSettled(tokenPromises).then((tokenLists: PromiseSettledResult<any>[]) => {
             const tokenMap: Map<string, Token> = new Map();
-            const providerNames: string[] = Object.values(providers).map(provider => provider.aggregatorId);
+            const hbarProviders: AggregatorId[] = [];
+
+            tokenLists.forEach(((tokenList, i) => {
+                const aggregatorId = providersList[i].aggregatorId;
+                if (tokenList.status === 'fulfilled') {
+                    let tokensToMap: GetToken[];
+                    switch (aggregatorId) {
+                        case AggregatorId.SaucerSwapV1:
+                        case AggregatorId.SaucerSwapV2:
+                        case AggregatorId.HSuite:
+                            tokensToMap = tokenList.value?.data;
+                            break;
+                        case AggregatorId.Pangolin:
+                        case AggregatorId.HeliSwap:
+                            tokensToMap = tokenList.value?.data?.tokens;
+                            break;
+                    }
+
+                    hbarProviders.push(aggregatorId);
+
+                    tokensToMap?.forEach((token: GetToken) => {
+                        let solidityAddress;
+                        switch (aggregatorId) {
+                            case AggregatorId.SaucerSwapV1:
+                            case AggregatorId.SaucerSwapV2:
+                            case AggregatorId.Pangolin:
+                                solidityAddress = `0x${ContractId.fromString((token as Exclude<GetToken, HeliSwapGetToken>).id).toSolidityAddress()}`.toLowerCase();
+                                break;
+                            case AggregatorId.HeliSwap:
+                                solidityAddress = (token as HeliSwapGetToken).address.toLowerCase();
+                                break;
+                            case AggregatorId.HSuite:
+                                if ((token as HSuiteGetToken).id === typeWallet.HBAR || (token as HSuiteGetToken).type === 'NON_FUNGIBLE_UNIQUE') {
+                                    return;
+                                }
+                                solidityAddress = `0x${ContractId.fromString((token as HSuiteGetToken).id).toSolidityAddress()}`.toLowerCase();
+                                break;
+                        }
+                        const existing = tokenMap.get(solidityAddress);
+                        if (existing) {
+                            existing.providers.push(aggregatorId);
+                        } else if (
+                            aggregatorId === AggregatorId.HSuite
+                            || etaSwapTokenList.has(ContractId.fromSolidityAddress(solidityAddress).toString())
+                        ) {
+                            tokenMap.set(solidityAddress, providersList[i].mapProviderTokenToToken(token));
+                        }
+                    });
+                } else {
+                    showFallbackToast(aggregatorId);
+                }
+            }));
+
             tokenMap.set(ethers.constants.AddressZero, {
                 name: 'Hbar',
                 symbol: 'HBAR',
@@ -82,87 +132,33 @@ function App() {
                 address: '',
                 solidityAddress: ethers.constants.AddressZero,
                 icon: HederaLogo,
-                providers: providerNames,
+                providers: hbarProviders,
             });
-
-            if(saucerSwapTokens){
-                saucerSwapTokens.data.map((token: SaucerSwapGetToken) => {
-                    const solidityAddress = `0x${ContractId.fromString(token.id).toSolidityAddress()}`.toLowerCase();
-                    if (tokenList.has(token.id)) {
-                        tokenMap.set(solidityAddress, providers.SaucerSwap.mapProviderTokenToToken(token));
-                    }
-                });
-            }
-
-            if(pangolinTokens){
-                pangolinTokens.data.tokens
-                    .filter((token: PangolinGetToken) => token.chainId === (network === NETWORKS.MAINNET ? 295 : 296))
-                    .map((token: PangolinGetToken) => {
-                    const existing = tokenMap.get(token.address.toLowerCase());
-                    if (existing) {
-                        existing.providers.push(providers.Pangolin.aggregatorId);
-                    } else if (tokenList.has(ContractId.fromSolidityAddress(token.address).toString())) {
-                        tokenMap.set(token.address.toLowerCase(), providers.Pangolin.mapProviderTokenToToken(token));
-                    }
-                });
-            }
-
-            if (heliswapTokens?.data?.tokens) {
-                heliswapTokens.data.tokens.map((token: HeliSwapGetToken) => {
-                    const existing = tokenMap.get(token.address.toLowerCase());
-                    if (existing) {
-                        existing.providers.push(providers.HeliSwap.aggregatorId);
-                    } else if (tokenList.has(ContractId.fromSolidityAddress(token.address).toString())) {
-                        tokenMap.set(token.address.toLowerCase(), providers.HeliSwap.mapProviderTokenToToken(token));
-                    }
-                });
-            }
-
-            if (hsuiteTokens?.data) {
-                hsuiteTokens.data.map((token: HSuiteGetToken) => {
-                    if (token.id !== typeWallet.HBAR && token.type !== 'NON_FUNGIBLE_UNIQUE') {
-                        const solidityAddress = `0x${ContractId.fromString(token.id).toSolidityAddress()}`.toLowerCase();
-                        const existing = tokenMap.get(solidityAddress);
-                        if (existing) {
-                            existing.providers.push(providers.HSuite.aggregatorId);
-                        } else if (tokenList.has(token.id)) {
-                            tokenMap.set(solidityAddress, providers.HSuite.mapProviderTokenToToken(token));
-                        }
-                    }
-                });
-            }
 
             setTokens(tokenMap);
         });
-    }, [network]);
+    }, []);
 
 
     return (
         <div className="App">
             <LoaderProvider>
-                <ToasterProvider>
-                    <Header
+                <Header
+                    wallet={wallet}
+                    wallets={wallets}
+                />
+                <div className="mainWindow">
+                    <AppRouter
                         wallet={wallet}
-                        wallets={wallets}
-                        network={network}
-                        setNetwork={setNetwork}
+                        tokens={tokens}
+                        rate={rate}
+                        providers={providers}
                     />
-                    <div className="mainWindow">
-                        <AppRouter
-                            wallet={wallet}
-                            tokens={tokens}
-                            network={network}
-                            rate={rate}
-                            providers={providers}
-                        />
-                    </div>
-                    <div className="social">
-                        <Social/>
-                    </div>
-                    <div className="version">v {pkg.version}</div>
-
-                    <ToastContainer />
-                </ToasterProvider>
+                </div>
+                <div className="social">
+                    <Social/>
+                </div>
+                <div className="version">v {pkg.version}</div>
             </LoaderProvider>
         </div>
     )

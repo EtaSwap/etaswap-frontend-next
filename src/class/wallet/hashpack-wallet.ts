@@ -1,5 +1,6 @@
 import { HashConnect } from 'hashconnect';
 import { AccountBalanceQuery } from '@hashgraph/sdk';
+import { NETWORK } from '../../config';
 
 export class HashpackWallet {
     name = 'hashpack';
@@ -13,7 +14,6 @@ export class HashpackWallet {
     };
     hashconnect: any;
     setWallet: any;
-    network: any;
     associatedTokens: any[] | null = null;
 
     constructor(setWallet: any) {
@@ -23,7 +23,7 @@ export class HashpackWallet {
         this.hashconnect.pairingEvent.on((pairingData: any) => {
             this.connectionData = pairingData;
             this.address = this.connectionData?.accountIds?.[0];
-            const provider = this.hashconnect.getProvider(this.network, pairingData?.topic, this.address);
+            const provider = this.hashconnect.getProvider(NETWORK, pairingData?.topic, this.address);
             this.signer = this.hashconnect.getSigner(provider);
             this.refreshWallet();
         });
@@ -41,24 +41,22 @@ export class HashpackWallet {
         });
     }
 
-    async connect(network: any, onLoad = false) {
-        const initData = await this.hashconnect.init(this.appMetadata, network, true);
-        if (initData?.savedPairings?.[0]?.network === network) {
+    async connect(onLoad = false) {
+        const initData = await this.hashconnect.init(this.appMetadata, NETWORK, true);
+        if (initData?.savedPairings?.[0]?.network === NETWORK) {
             //reload page
-            this.network = network;
             this.connectionData = initData?.savedPairings?.[0];
             this.address = this.connectionData?.accountIds?.[0];
-            const provider = this.hashconnect.getProvider(network, initData?.topic, initData?.savedPairings?.[0]?.accountIds?.[0]);
+            const provider = this.hashconnect.getProvider(NETWORK, initData?.topic, initData?.savedPairings?.[0]?.accountIds?.[0]);
             this.signer = this.hashconnect.getSigner(provider);
             const balance = await this.signer.getAccountBalance();
             this.associatedTokens = balance.tokens?._map;
             this.refreshWallet();
         } else if (!onLoad) {
             //new connection
-            this.network = network;
             await this.hashconnect.disconnect(this.connectionData?.topic);
             await this.hashconnect.clearConnectionsAndData();
-            await this.hashconnect.init(this.appMetadata, network, true);
+            await this.hashconnect.init(this.appMetadata, NETWORK, true);
             this.hashconnect.connectToLocalWallet();
         }
     }

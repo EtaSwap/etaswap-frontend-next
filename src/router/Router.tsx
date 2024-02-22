@@ -9,12 +9,11 @@ import { Provider } from '../class/providers/provider';
 export interface IAppRouterProps{
     wallet: IWallet;
     tokens: Map<string, Token>;
-    network: string;
     rate: number | null;
     providers: Record<string, Provider>;
 }
 
-const AppRouter = ({wallet, tokens, network, rate, providers}: IAppRouterProps) => {
+const AppRouter = ({wallet, tokens, rate, providers}: IAppRouterProps) => {
 
     return (
         <Routes>
@@ -22,7 +21,6 @@ const AppRouter = ({wallet, tokens, network, rate, providers}: IAppRouterProps) 
                 <Swap
                     wallet={wallet}
                     tokens={tokens}
-                    network={network}
                     rate={rate}
                     providers={providers}
                 />

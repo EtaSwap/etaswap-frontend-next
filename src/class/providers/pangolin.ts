@@ -1,5 +1,5 @@
 import { Provider } from './provider';
-import { Props } from './types/props';
+import { AggregatorId, Props } from './types/props';
 import { PangolinGetToken } from './types/tokens';
 import { Token } from '../../types/token';
 import { ContractId } from '@hashgraph/sdk';
@@ -8,7 +8,7 @@ import PangolinLogo from '../../assets/img/pangolin.png';
 
 export class Pangolin extends Provider {
     public icon = PangolinLogo;
-    public aggregatorId = 'Pangolin';
+    public aggregatorId = AggregatorId.Pangolin;
     public feePromille = 3;
     public feeDEXPromille = 3;
 

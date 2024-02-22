@@ -4,14 +4,13 @@ import { SaucerSwapV2 } from './class/providers/saucer-swap-v2';
 import { HSuite } from './class/providers/h-suite';
 import { Provider } from './class/providers/provider';
 import tokenListTestnet from './tokenListTestnet.json';
+import { AggregatorId } from './class/providers/types/props';
 
 export const NETWORK: string = 'testnet';
-
-export const MIRRORNODE: string = 'https://mainnet-public.mirrornode.hedera.com';
-
+export const MIRRORNODE: string = 'https://testnet.mirrornode.hedera.com';
 export const TOKEN_LIST: string[] = tokenListTestnet;
-
-export const PROVIDERS: Record<string, Provider> = {
+export const DEFAULT_TOKENS: number[] = [0, 4];
+export const PROVIDERS: Partial<Record<AggregatorId, Provider>> = {
     SaucerSwapV2: new SaucerSwapV2({
         getTokensUrl: 'https://test-api.saucerswap.finance/tokens',
         whbar: '0x0000000000000000000000000000000000003ad1',
@@ -24,7 +23,8 @@ export const PROVIDERS: Record<string, Provider> = {
         getTokensUrl: 'https://testnet-sn1.hbarsuite.network/tokens/list',
     })
 };
-
+export const EXCHANGE_ADDRESS = '0.0.3587210';
+export const HSUITE_API_KEY = '25f54dd3-47a1-4667-b9d8-2863585bc460';
 export const HSUITE_NODES: HSuiteNodeConfig[] = [
     {
         operator: '0.0.467726',

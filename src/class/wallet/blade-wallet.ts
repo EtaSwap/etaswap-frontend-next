@@ -1,4 +1,5 @@
 import { BladeConnector, ConnectorStrategy } from '@bladelabs/blade-web3.js';
+import { NETWORK } from '../../config';
 
 export class BladeWallet {
     name = 'blade';
@@ -12,7 +13,6 @@ export class BladeWallet {
     };
     bladeConnector: any = null;
     setWallet: any;
-    network: any;
 
     constructor(setWallet: any) {
         this.setWallet = setWallet;
@@ -29,15 +29,14 @@ export class BladeWallet {
         });
     }
 
-    async connect(network: any, onLoad = false) {
-        this.network = network;
+    async connect(onLoad = false) {
         if (!this.bladeConnector) {
             this.bladeConnector = await BladeConnector.init(
                 ConnectorStrategy.AUTO,
                 this.appMetadata,
             );
         }
-        const accountIds = await this.bladeConnector.createSession({ network });
+        const accountIds = await this.bladeConnector.createSession({ network: NETWORK });
         this.address = accountIds?.[0];
         this.signer = this.bladeConnector.getSigner();
 

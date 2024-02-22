@@ -10,7 +10,6 @@ export function TokensModal({
                                 setIsOpen,
                                 hiddenTokens,
                                 tokens,
-                                network,
                                 setHiddenTokens,
                                 providers
                             }: any) {

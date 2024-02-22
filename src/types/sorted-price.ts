@@ -1,4 +1,9 @@
 import { BigNumber } from 'ethers';
+import { AggregatorId } from '../class/providers/types/props';
+
+export enum TransactionType {
+    SWAP = 'SWAP',
+}
 
 export type SortedPrice = {
     //input
@@ -7,6 +12,10 @@ export type SortedPrice = {
     price: BigNumber;
 
     //output
-    priceImpact: BigNumber;
+    transactionType: TransactionType,
+    aggregatorId: AggregatorId,
+    path: string;
+    amountIn: BigNumber;
     amountOut: BigNumber;
+    priceImpact: number;
 }

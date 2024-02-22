@@ -1,5 +1,5 @@
 import { Provider } from './provider';
-import { Props } from './types/props';
+import { AggregatorId, Props } from './types/props';
 import { HeliSwapGetToken } from './types/tokens';
 import { Token } from '../../types/token';
 import { ContractId } from '@hashgraph/sdk';
@@ -8,7 +8,7 @@ import HeliSwapLogo from '../../assets/img/heliswap.png';
 
 export class HeliSwap extends Provider {
     public icon = HeliSwapLogo;
-    public aggregatorId = 'HeliSwap';
+    public aggregatorId = AggregatorId.HeliSwap;
     public feePromille = 5;
     public feeDEXPromille = 3;
 
