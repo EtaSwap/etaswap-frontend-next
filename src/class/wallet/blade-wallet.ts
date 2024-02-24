@@ -1,5 +1,6 @@
 import { BladeConnector, ConnectorStrategy } from '@bladelabs/blade-web3.js';
 import { NETWORK } from '../../config';
+import { AccountBalanceQuery, Client, TokenAssociateTransaction, TokenBalanceJson } from '@hashgraph/sdk';
 
 export class BladeWallet {
     name = 'blade';
@@ -13,6 +14,7 @@ export class BladeWallet {
     };
     bladeConnector: any = null;
     setWallet: any;
+    associatedTokens: TokenBalanceJson[] | null = null;
 
     constructor(setWallet: any) {
         this.setWallet = setWallet;
@@ -43,6 +45,45 @@ export class BladeWallet {
         this.refreshWallet();
     }
 
+    async updateBalance(isDelay = false) {
+        if (isDelay) {
+            setTimeout(async () => {
+                await this.getBalance();
+            }, 3000);
+        } else {
+            await this.getBalance();
+        }
+    }
+
+    getBalance = async () => {
+        if (this.bladeConnector) {
+            const client = NETWORK === 'testnet' ? Client.forTestnet() : Client.forMainnet();
+            const tokens = await new AccountBalanceQuery().setAccountId(this.address).execute(client);
+            this.associatedTokens = tokens.toJSON().tokens;
+        } else {
+            this.associatedTokens = null;
+        }
+        this.refreshWallet();
+    }
+
+    async associateNewToken(tokenAddress: string | null) {
+        if (!tokenAddress) {
+            return;
+        }
+        try {
+            const associateTx = new TokenAssociateTransaction();
+            associateTx.setTokenIds([tokenAddress]);
+            associateTx.setAccountId(this.signer.accountId.toString());
+            await associateTx.freezeWithSigner(this.signer);
+            const result: any = await this.executeTransaction(associateTx);
+            this.refreshWallet();
+            return result;
+        } catch (error) {
+            this.refreshWallet();
+            return null;
+        }
+    }
+
     async auth({ serverAddress, serverSignature, originalPayload }: any) {
         const payload = { serverSignature, originalPayload };
         const signRes = await this.signer.sign([new Uint8Array(Buffer.from(JSON.stringify(payload)))]);
@@ -56,7 +97,7 @@ export class BladeWallet {
     }
 
     async executeTransaction(transaction: any) {
-        const res =  await transaction.executeWithSigner(this.signer);
+        const res = await transaction.executeWithSigner(this.signer);
 
         console.log(res);
         return {

@@ -28,6 +28,7 @@ export const WHBAR_LIST = [
     '0x0000000000000000000000000000000000003ad2'
 ];
 export const HSUITE_API_KEY = '25f54dd3-47a1-4667-b9d8-2863585bc460';
+export const HSUITE_TOKEN_ADDRESS = '0x0000000000000000000000000000000000219d8e';
 export const HSUITE_NODES: HSuiteNodeConfig[] = [
     {
         operator: '0.0.467726',

@@ -1,5 +1,5 @@
 import { HashConnect } from 'hashconnect';
-import { AccountBalanceQuery } from '@hashgraph/sdk';
+import { AccountBalanceQuery, Client, TokenAssociateTransaction } from '@hashgraph/sdk';
 import { NETWORK } from '../../config';
 
 export class HashpackWallet {
@@ -58,6 +58,35 @@ export class HashpackWallet {
             await this.hashconnect.clearConnectionsAndData();
             await this.hashconnect.init(this.appMetadata, NETWORK, true);
             this.hashconnect.connectToLocalWallet();
+        }
+    }
+
+    async updateBalance() {
+        if(this.hashconnect) {
+            const client = NETWORK === 'testnet' ? Client.forTestnet() : Client.forMainnet();
+            const tokens = await new AccountBalanceQuery().setAccountId(this.address).execute(client);
+            this.associatedTokens = tokens.toJSON().tokens;
+        }else {
+            this.associatedTokens = null;
+        }
+        this.refreshWallet();
+    }
+
+    async associateNewToken(tokenAddress: string | null) {
+        if(!tokenAddress){
+            return;
+        }
+        try {
+            const associateTx = new TokenAssociateTransaction();
+            associateTx.setTokenIds([tokenAddress]);
+            associateTx.setAccountId(this.signer.accountToSign);
+            await associateTx.freezeWithSigner(this.signer);
+            const result: any = await this.executeTransaction(associateTx);
+            this.refreshWallet();
+            return result;
+        } catch (error) {
+            this.refreshWallet();
+            return {error: 'ERROR'};
         }
     }
 

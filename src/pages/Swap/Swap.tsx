@@ -6,6 +6,7 @@ import {
     AccountAllowanceApproveTransaction,
     ContractExecuteTransaction,
     ContractFunctionParameters,
+    TokenBalanceJson,
     Transaction,
     TransferTransaction,
 } from '@hashgraph/sdk';
@@ -22,8 +23,16 @@ import { Provider } from '../../class/providers/provider';
 import { IAssociatedButton, typeWallet } from "../../models";
 import useDebounce from "../../hooks/useDebounce";
 import { SortedPrice } from '../../types/sorted-price';
-import { DEFAULT_TOKENS, EXCHANGE_ADDRESS, HSUITE_NODES, MIRRORNODE, WHBAR_LIST } from '../../config';
+import {
+    DEFAULT_TOKENS,
+    EXCHANGE_ADDRESS,
+    HSUITE_NODES,
+    HSUITE_TOKEN_ADDRESS,
+    MIRRORNODE,
+    WHBAR_LIST
+} from '../../config';
 import { AggregatorId } from '../../class/providers/types/props';
+import AssociateNewToken from './Components/AssociateNewToken/AssociateNewToken';
 
 export interface ISwapProps {
     wallet: any;
@@ -37,16 +46,16 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
     const { showToast } = useToaster();
 
     const tokens = sortTokens(tokensMap);
-    const [tokenOneAmountInput, setTokenOneAmountInput] = useState<any>(0);
-    const [tokenTwoAmountInput, setTokenTwoAmountInput] = useState<any>(0);
-    const [tokenOneAmount, setTokenOneAmount] = useState<any>(0);
-    const [tokenTwoAmount, setTokenTwoAmount] = useState<any>(0);
+    const [tokenOneAmountInput, setTokenOneAmountInput] = useState<string>('0');
+    const [tokenTwoAmountInput, setTokenTwoAmountInput] = useState<string>('0');
+    const [tokenOneAmount, setTokenOneAmount] = useState<string>('0');
+    const [tokenTwoAmount, setTokenTwoAmount] = useState<string>('0');
     const [tokenOne, setTokenOne] = useState(tokens[DEFAULT_TOKENS[0]]);
     const [tokenTwo, setTokenTwo] = useState(tokens[DEFAULT_TOKENS[1]]);
 
     const debouncedTokenOneAmountInput: string = useDebounce(tokenOneAmountInput, 500);
     const debouncedTokenTwoAmountInput: string = useDebounce(tokenTwoAmountInput, 500);
-    const [associatedButtons, setAssociatedButtons] = useState<IAssociatedButton[]>([]);
+    const [associatedButtons, setAssociatedButtons] = useState<Token[]>([]);
     const [slippage, setSlippage] = useState(1);
     const [feeOnTransfer, setFeeOnTransfer] = useState<boolean>(false);
     const [messageApi, contextHolder] = message.useMessage()
@@ -133,7 +142,7 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
         }
         const input = e.target.value;
         if (input.match(/^[0-9]{0,10}(?:\.[0-9]{0,8})?$/)) {
-            setTokenOneAmountInput(input ? (['.', '0'].includes(input.charAt(input.length - 1)) ? input : parseFloat(input).toString()) : 0);
+            setTokenOneAmountInput(input ? (['.', '0'].includes(input.charAt(input.length - 1)) ? input : parseFloat(input).toString()) : '0');
         }
     }
 
@@ -144,15 +153,15 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
         }
         const input = e.target.value;
         if (input.match(/^[0-9]{0,10}(?:\.[0-9]{0,8})?$/)) {
-            setTokenTwoAmountInput(input ? (['.', '0'].includes(input.charAt(input.length - 1)) ? input : parseFloat(input).toString()) : 0);
+            setTokenTwoAmountInput(input ? (['.', '0'].includes(input.charAt(input.length - 1)) ? input : parseFloat(input).toString()) : '0');
         }
     }
 
     const switchTokens = () => {
-        setTokenOneAmountInput(0);
-        setTokenTwoAmountInput(0);
-        setTokenOneAmount(0);
-        setTokenTwoAmount(0);
+        setTokenOneAmountInput('0');
+        setTokenTwoAmountInput('0');
+        setTokenOneAmount('0');
+        setTokenTwoAmount('0');
         setTokenOne(tokenTwo);
         setTokenTwo(tokenOne);
         // fetchDexSwap(tokenTwo.solidityAddress, tokenOne.solidityAddress)
@@ -164,10 +173,10 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
     }
 
     const modifyToken = (i: any) => {
-        setTokenOneAmountInput(0);
-        setTokenTwoAmountInput(0);
-        setTokenOneAmount(0);
-        setTokenTwoAmount(0);
+        setTokenOneAmountInput('0');
+        setTokenTwoAmountInput('0');
+        setTokenOneAmount('0');
+        setTokenTwoAmount('0');
         if (changeToken === 1) {
             setTokenOne(tokens[i]);
             // fetchDexSwap(tokens[i].solidityAddress, tokenTwo.solidityAddress)
@@ -391,10 +400,10 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
             }
         }
 
-        setTokenOneAmountInput(0);
-        setTokenTwoAmountInput(0);
-        setTokenOneAmount(0);
-        setTokenTwoAmount(0);
+        setTokenOneAmountInput('0');
+        setTokenTwoAmountInput('0');
+        setTokenOneAmount('0');
+        setTokenTwoAmount('0');
     }
 
     const getBestPriceDescr = () => {
@@ -405,9 +414,9 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
     const swapDisabled = () => {
         const bestPrice = sortedPrices?.[0];
         let availableTokens = false;
-        if(wallet.associatedTokens && tokenOne && tokenTwo){
-            if(!(wallet.associatedTokens.has(tokenTwo.address) || tokenOne.symbol === typeWallet.HBAR) ||
-                !(wallet.associatedTokens.has(tokenOne.address) || tokenOne.symbol === typeWallet.HBAR)){
+        if (wallet.associatedTokens && tokenOne && tokenTwo) {
+            if (!(wallet.associatedTokens.has(tokenTwo.address) || tokenOne.symbol === typeWallet.HBAR) ||
+                !(wallet.associatedTokens.has(tokenOne.address) || tokenOne.symbol === typeWallet.HBAR)) {
                 availableTokens = true;
             }
         }
@@ -455,24 +464,102 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
     const refreshRate = () => {
         setIsRefreshAnimationActive(false);
         refreshCount.current = refreshCount.current + 2;
-        if (tokenOne?.solidityAddress && tokenTwo?.solidityAddress) {
+        if (
+            tokenOne?.solidityAddress
+            && tokenTwo?.solidityAddress
+            && (feeOnTransfer ? tokenTwoAmount : tokenOneAmount) !== '0'
+        ) {
             fetchPrices();
         }
         setTimeout(() => setIsRefreshAnimationActive(true), 0);
         refreshTimer.current = setTimeout(refreshRate, (25000 + 30 * refreshCount.current * refreshCount.current));
     };
 
+    const associateToken = async (token: Token) => {
+        showLoader();
+        const result = await wallet.associateNewToken(token.address);
+
+        if (result) {
+            if (result.error) {
+                if (result.error === "USER_REJECT") {
+                    showToast('Associate Token', `Token ${token.name} association was rejected.`, toastTypes.error);
+                } else if (result.error.includes('precheck with status')) {
+                    showToast('Associate token', result.error, toastTypes.error);
+                } else if (result.error.includes('TOKEN_ALREADY_ASSOCIATED_TO_ACCOUNT')) {
+                    // "receipt for transaction 0.0.5948290@1703145822.184660155 contained error status TOKEN_ALREADY_ASSOCIATED_TO_ACCOUNT"
+                    showToast('Associate Token', result.error, toastTypes.error);
+                } else {
+                    showToast('Error', `An unknown error occurred`, toastTypes.error);
+                }
+            } else if (result?.res?.nodeId) {
+                showToast('Associate Token', `Token ${token.name} associated to account`, toastTypes.success);
+            }
+        } else {
+            showToast('Error', `An unknown error occurred.`, toastTypes.error);
+        }
+        wallet.updateBalance(true);
+        checkAssociateTokens();
+        hideLoader();
+    }
+
+    const checkAssociateTokens = () => {
+        if (wallet && wallet.signer === null) {
+            setAssociatedButtons([]);
+            return;
+        }
+        if (wallet.associatedTokens !== null && tokenOne && tokenTwo) {
+            const findHSuite = sortedPrices && sortedPrices.length > 0 ? sortedPrices[0].aggregatorId === AggregatorId.HSuite : false;
+            let tokens: Token[] = [];
+            if (!(wallet.associatedTokens?.has(tokenOne.address)) && tokenOne.symbol !== typeWallet.HBAR) {
+                tokens.push({ ...tokenOne });
+            }
+            if (!(wallet.associatedTokens?.has(tokenTwo.address)) && tokenTwo.symbol !== typeWallet.HBAR) {
+                tokens.push({ ...tokenTwo });
+            }
+            const hSuiteToken = tokens.find(token => token.solidityAddress === HSUITE_TOKEN_ADDRESS);
+            if (hSuiteToken && findHSuite) {
+                if (!(wallet.associatedTokens?.has(hSuiteToken.address))) {
+                    tokens.push(hSuiteToken);
+                }
+            }
+            const uniqueArray = filterUniqueTokens(tokens);
+            setAssociatedButtons(uniqueArray);
+        }
+    }
+
+    const filterUniqueTokens = (tokens: Token[]) => {
+        const result = tokens.reduce((acc: Token[], current: Token) => {
+            const x = acc.find(item => item.address === current.address);
+            if (!x) {
+                return acc.concat([current]);
+            } else {
+                return acc;
+            }
+        }, []);
+        return result;
+    }
 
     useEffect(() => {
-        console.log('qwe')
-        if (!feeOnTransfer && tokenOne?.solidityAddress && tokenTwo?.solidityAddress) {
+        console.log('before fetch')
+        console.log(tokenOneAmount, tokenOneAmountInput);
+        if (!feeOnTransfer && tokenOneAmountInput === '0') {
+            console.log('1 zero');
+            setTokenTwoAmountInput('0');
+            setTokenTwoAmount('0');
+            setSortedPrices([]);
+        } else if (!feeOnTransfer && tokenOne?.solidityAddress && tokenTwo?.solidityAddress) {
             console.log('fetch 1');
             fetchPrices();
         }
     }, [tokenOneAmount]);
 
     useEffect(() => {
-        if (feeOnTransfer && tokenOne?.solidityAddress && tokenTwo?.solidityAddress) {
+        if (feeOnTransfer && tokenTwoAmount === '0') {
+            console.log('2 zero');
+            setTokenOneAmountInput('0');
+            setTokenOneAmount('0');
+            setSortedPrices([]);
+        } else if (feeOnTransfer && tokenOne?.solidityAddress && tokenTwo?.solidityAddress) {
             console.log('fetch 2');
             fetchPrices();
         }
@@ -484,41 +571,38 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
             if (tokenTwoAmount && bestAmountIn) {
                 setTokenOneAmountInput(ethers.utils.formatUnits(bestAmountIn, tokenOne?.decimals));
             } else {
-                setTokenOneAmountInput(0);
+                setTokenOneAmountInput('0');
             }
         } else {
             const bestAmountOut = sortedPrices?.[0]?.amountOut?.toString();
             if (tokenOneAmount && bestAmountOut) {
                 setTokenTwoAmountInput(ethers.utils.formatUnits(bestAmountOut, tokenTwo?.decimals));
             } else {
-                setTokenTwoAmountInput(0);
+                setTokenTwoAmountInput('0');
             }
         }
     }, [sortedPrices]);
 
     useEffect(() => {
-        if (debouncedTokenTwoAmountInput) {
-            setTokenTwoAmount(debouncedTokenTwoAmountInput);
-        }
+        setTokenTwoAmount(debouncedTokenTwoAmountInput);
     }, [debouncedTokenTwoAmountInput]);
+
     useEffect(() => {
-        if (debouncedTokenOneAmountInput) {
-            setTokenOneAmount(debouncedTokenOneAmountInput);
-        }
+        setTokenOneAmount(debouncedTokenOneAmountInput);
     }, [debouncedTokenOneAmountInput]);
 
     useEffect(() => {
-        if(wallet.associatedTokens && tokenOne && tokenTwo){
-            let tokens: IAssociatedButton[] = [];
-            if(!(wallet.associatedTokens.has(tokenOne.address) || tokenOne.symbol === typeWallet.HBAR)){
-                tokens.push({...tokenOne});
+        if (wallet.associatedTokens && tokenOne && tokenTwo) {
+            let tokens: Token[] = [];
+            if (!(wallet.associatedTokens.has(tokenOne.address) || tokenOne.symbol === typeWallet.HBAR)) {
+                tokens.push({ ...tokenOne });
             }
-            if(!(wallet.associatedTokens.has(tokenTwo.address) || tokenOne.symbol === typeWallet.HBAR)){
-                tokens.push({...tokenTwo});
+            if (!(wallet.associatedTokens.has(tokenTwo.address) || tokenOne.symbol === typeWallet.HBAR)) {
+                tokens.push({ ...tokenTwo });
             }
             setAssociatedButtons(tokens);
         }
-    },[tokenOne, tokenTwo]);
+    }, [tokenOne, tokenTwo]);
 
     useEffect(() => {
         setTokenOne(tokens[DEFAULT_TOKENS[0]]);
@@ -526,14 +610,15 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
     }, [tokensMap]);
 
     useEffect(() => {
-        setTokenOneAmountInput(0);
-        setTokenTwoAmountInput(0);
-        setTokenOneAmount(0);
-        setTokenTwoAmount(0);
+        setTokenOneAmountInput('0');
+        setTokenTwoAmountInput('0');
+        setTokenOneAmount('0');
+        setTokenTwoAmount('0');
     }, [wallet, tokensMap]);
 
 
     useEffect(() => {
+        checkAssociateTokens();
         setIsRefreshAnimationActive(false);
         clearTimeout(refreshTimer.current);
         refreshCount.current = 0;
@@ -542,6 +627,10 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
         }
         refreshTimer.current = setTimeout(refreshRate, 25000 + 1500);
     }, [tokenOne, tokenTwo]);
+
+    useEffect(() => {
+        checkAssociateTokens();
+    }, [wallet]);
 
     return (
         <>
@@ -590,6 +679,8 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
                     </div>
                 </div>
 
+                <AssociateNewToken handleClick={associateToken} associatedButtons={associatedButtons}/>
+
                 <div className='ratesLogoWrapper'>
                     <div className='ratesLogoInner'>
                         <span className='ratesLogoTop'>Best rate: {getBestPriceDescr()}</span>
@@ -606,7 +697,7 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
                         : ''
                     }
                 </div>
-                {(tokenOneAmount && tokenTwoAmount)
+                {(tokenOneAmount !== '0' && tokenTwoAmount !== '0')
                     ? feeOnTransfer
                         ? <div>Max to
                             sell: {ethers.utils.formatUnits(ethers.utils.parseUnits(tokenOneAmount, tokenOne.decimals).mul(1000 + slippage * 10).div(1000).toString(), tokenOne.decimals)}</div>
@@ -617,7 +708,7 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
                 <div className='networkFee'>Network fee: ≈{getNetworkFee().toFixed(4)} HBAR</div>
                 <div className="refreshTicker">
                     <div className={isRefreshAnimationActive ? 'active' : ''}
-                         style={{animationDuration: parseInt(String((25000 + 30 * refreshCount.current * refreshCount.current) / 1000)) + 's'}}></div>
+                         style={{ animationDuration: parseInt(String((25000 + 30 * refreshCount.current * refreshCount.current) / 1000)) + 's' }}></div>
                 </div>
                 <div className='assocWarning'>&#9432; Make sure selected tokens are associated to your account.</div>
 

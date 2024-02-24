@@ -1,0 +1,25 @@
+.associate-button{
+    width: 100%;
+}
+.associate-button__button{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    border: none;
+    outline: none;
+    justify-content: center;
+    background-color: #283660;
+    width: 100%;
+    height: 55px;
+    font-size: 16px;
+    border-radius: 12px;
+    color: #E8FFCE;
+    font-weight: bold;
+    transition: 0.3s;
+    margin-bottom: 8px;
+    margin-top: 8px;
+}
+.associate-button span{
+    font-size: 12px;
+}

@@ -138,6 +138,7 @@ function App() {
                 providers: hbarProviders,
             });
 
+            console.log(tokenMap);
             setTokens(tokenMap);
         });
     }, []);
