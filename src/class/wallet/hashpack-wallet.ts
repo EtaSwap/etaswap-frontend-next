@@ -1,6 +1,7 @@
 import { HashConnect } from 'hashconnect';
 import { AccountBalanceQuery, Client, TokenAssociateTransaction } from '@hashgraph/sdk';
 import { NETWORK } from '../../config';
+import { Long } from '@hashgraph/sdk/lib/long';
 
 export class HashpackWallet {
     name = 'hashpack';
@@ -14,7 +15,7 @@ export class HashpackWallet {
     };
     hashconnect: any;
     setWallet: any;
-    associatedTokens: any[] | null = null;
+    associatedTokens: Map<string, Long> | undefined;
 
     constructor(setWallet: any) {
         this.hashconnect = new HashConnect();
@@ -33,11 +34,13 @@ export class HashpackWallet {
         this.setWallet({
             name: this.name,
             address: this.address,
-            signer: this.signer,
             associatedTokens: this.associatedTokens,
+            signer: this.signer,
             auth: this.auth.bind(this),
             signTransaction: this.signTransaction.bind(this),
             executeTransaction: this.executeTransaction.bind(this),
+            associateNewToken: this.associateNewToken.bind(this),
+            updateBalance: this.updateBalance.bind(this),
         });
     }
 
@@ -62,18 +65,17 @@ export class HashpackWallet {
     }
 
     async updateBalance() {
-        if(this.hashconnect) {
-            const client = NETWORK === 'testnet' ? Client.forTestnet() : Client.forMainnet();
-            const tokens = await new AccountBalanceQuery().setAccountId(this.address).execute(client);
-            this.associatedTokens = tokens.toJSON().tokens;
-        }else {
-            this.associatedTokens = null;
+        if (this.hashconnect) {
+            const balance = await this.signer.getAccountBalance();
+            this.associatedTokens = balance.tokens?._map;
+        } else {
+            this.associatedTokens = undefined;
         }
         this.refreshWallet();
     }
 
     async associateNewToken(tokenAddress: string | null) {
-        if(!tokenAddress){
+        if (!tokenAddress) {
             return;
         }
         try {
@@ -86,7 +88,7 @@ export class HashpackWallet {
             return result;
         } catch (error) {
             this.refreshWallet();
-            return {error: 'ERROR'};
+            return { error: 'ERROR' };
         }
     }
 

@@ -56,6 +56,12 @@ function App() {
     const [providers] = useState(PROVIDERS);
     const { showToast } = useToaster();
 
+    useEffect(() => {
+        if(wallet.address && wallets?.[wallet.name]?.instance?.updateBalance){
+            wallets[wallet.name].instance.updateBalance();
+        }
+    }, [wallet.address]);
+
     const showFallbackToast = (exchangeName: string) => {
         showToast('Fetch error', `Error loading token list from ${exchangeName}`, toastTypes.warning);
     }
@@ -138,7 +144,6 @@ function App() {
                 providers: hbarProviders,
             });
 
-            console.log(tokenMap);
             setTokens(tokenMap);
         });
     }, []);

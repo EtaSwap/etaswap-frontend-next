@@ -411,21 +411,26 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
         return parseFloat(convertPrice(bestPrice?.price))?.toFixed(6);
     }
 
-    const swapDisabled = () => {
+    const swapAvailable = () => {
         const bestPrice = sortedPrices?.[0];
-        let availableTokens = false;
+        let allTokensAssociated = true;
         if (wallet.associatedTokens && tokenOne && tokenTwo) {
-            if (!(wallet.associatedTokens.has(tokenTwo.address) || tokenOne.symbol === typeWallet.HBAR) ||
-                !(wallet.associatedTokens.has(tokenOne.address) || tokenOne.symbol === typeWallet.HBAR)) {
-                availableTokens = true;
+            if (!(wallet.associatedTokens.has(tokenOne.address) || tokenOne.symbol === typeWallet.HBAR) ||
+                !(wallet.associatedTokens.has(tokenTwo.address) || tokenTwo.symbol === typeWallet.HBAR)) {
+                allTokensAssociated = false;
+            }
+            const isHSuiteRequired = sortedPrices?.length > 0 ? sortedPrices[0].aggregatorId === AggregatorId.HSuite : false;
+            const hSuiteToken = tokens.find(token => token.solidityAddress === HSUITE_TOKEN_ADDRESS);
+            if (isHSuiteRequired && !(wallet.associatedTokens?.has(hSuiteToken.address))) {
+                allTokensAssociated = false;
             }
         }
 
-        return !tokenOneAmount
-            // || availableTokens
-            || !wallet?.address
-            || !bestPrice?.price
-            || bestPrice?.priceImpact > 20;
+        return tokenOneAmount
+            && allTokensAssociated
+            && wallet.address
+            && bestPrice?.amountIn
+            && bestPrice?.amountOut;
     }
 
     const getNetworkFee = () => {
@@ -445,14 +450,14 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
         setTimeout(() => {
             setSortedPrices([{
                 transactionType: 'SWAP',
-                aggregatorId: 'SaucerSwapV1',
+                aggregatorId: 'HSuite',
                 path: '0x000100101',
                 amountIn: BigNumber.from('2400000000'),
                 amountOut: BigNumber.from('4000000000'),
                 gas: 200000,
             }, {
                 transactionType: 'SWAP',
-                aggregatorId: 'HSuite',
+                aggregatorId: 'SaucerSwapV1',
                 path: '0x0001001014894874874873931111119494949499991111',
                 amountIn: BigNumber.from('2400000000'),
                 amountOut: BigNumber.from('3900000000'),
@@ -507,23 +512,23 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
             setAssociatedButtons([]);
             return;
         }
-        if (wallet.associatedTokens !== null && tokenOne && tokenTwo) {
-            const findHSuite = sortedPrices && sortedPrices.length > 0 ? sortedPrices[0].aggregatorId === AggregatorId.HSuite : false;
-            let tokens: Token[] = [];
+        if (wallet.associatedTokens && tokenOne?.solidityAddress && tokenTwo?.solidityAddress) {
+            const isHSuiteRequired = sortedPrices?.length > 0 ? sortedPrices[0].aggregatorId === AggregatorId.HSuite : false;
+            const hSuiteToken = tokens.find(token => token.solidityAddress === HSUITE_TOKEN_ADDRESS);
+            let tokensToAssociate: Token[] = [];
             if (!(wallet.associatedTokens?.has(tokenOne.address)) && tokenOne.symbol !== typeWallet.HBAR) {
-                tokens.push({ ...tokenOne });
+                tokensToAssociate.push({ ...tokenOne });
             }
             if (!(wallet.associatedTokens?.has(tokenTwo.address)) && tokenTwo.symbol !== typeWallet.HBAR) {
-                tokens.push({ ...tokenTwo });
+                tokensToAssociate.push({ ...tokenTwo });
             }
-            const hSuiteToken = tokens.find(token => token.solidityAddress === HSUITE_TOKEN_ADDRESS);
-            if (hSuiteToken && findHSuite) {
+            const isHSuiteInList = !!tokensToAssociate.find(token => token.solidityAddress === HSUITE_TOKEN_ADDRESS);
+            if (!isHSuiteInList && isHSuiteRequired) {
                 if (!(wallet.associatedTokens?.has(hSuiteToken.address))) {
-                    tokens.push(hSuiteToken);
+                    tokensToAssociate.push(hSuiteToken);
                 }
             }
-            const uniqueArray = filterUniqueTokens(tokens);
-            setAssociatedButtons(uniqueArray);
+            setAssociatedButtons(filterUniqueTokens(tokensToAssociate));
         }
     }
 
@@ -540,29 +545,25 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
     }
 
     useEffect(() => {
-        console.log('before fetch')
-        console.log(tokenOneAmount, tokenOneAmountInput);
         if (!feeOnTransfer && tokenOneAmountInput === '0') {
-            console.log('1 zero');
             setTokenTwoAmountInput('0');
             setTokenTwoAmount('0');
             setSortedPrices([]);
         } else if (!feeOnTransfer && tokenOne?.solidityAddress && tokenTwo?.solidityAddress) {
-            console.log('fetch 1');
             fetchPrices();
         }
+        checkAssociateTokens();
     }, [tokenOneAmount]);
 
     useEffect(() => {
         if (feeOnTransfer && tokenTwoAmount === '0') {
-            console.log('2 zero');
             setTokenOneAmountInput('0');
             setTokenOneAmount('0');
             setSortedPrices([]);
         } else if (feeOnTransfer && tokenOne?.solidityAddress && tokenTwo?.solidityAddress) {
-            console.log('fetch 2');
             fetchPrices();
         }
+        checkAssociateTokens();
     }, [tokenTwoAmount]);
 
     useEffect(() => {
@@ -590,19 +591,6 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
     useEffect(() => {
         setTokenOneAmount(debouncedTokenOneAmountInput);
     }, [debouncedTokenOneAmountInput]);
-
-    useEffect(() => {
-        if (wallet.associatedTokens && tokenOne && tokenTwo) {
-            let tokens: Token[] = [];
-            if (!(wallet.associatedTokens.has(tokenOne.address) || tokenOne.symbol === typeWallet.HBAR)) {
-                tokens.push({ ...tokenOne });
-            }
-            if (!(wallet.associatedTokens.has(tokenTwo.address) || tokenOne.symbol === typeWallet.HBAR)) {
-                tokens.push({ ...tokenTwo });
-            }
-            setAssociatedButtons(tokens);
-        }
-    }, [tokenOne, tokenTwo]);
 
     useEffect(() => {
         setTokenOne(tokens[DEFAULT_TOKENS[0]]);
@@ -710,11 +698,8 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
                     <div className={isRefreshAnimationActive ? 'active' : ''}
                          style={{ animationDuration: parseInt(String((25000 + 30 * refreshCount.current * refreshCount.current) / 1000)) + 's' }}></div>
                 </div>
-                <div className='assocWarning'>&#9432; Make sure selected tokens are associated to your account.</div>
 
-                <button className='swapButton' onClick={fetchDex} disabled={swapDisabled()}>
-                    Swap
-                </button>
+                <button className='swapButton' onClick={fetchDex} disabled={!swapAvailable()}>Swap</button>
             </div>
         </>
     )

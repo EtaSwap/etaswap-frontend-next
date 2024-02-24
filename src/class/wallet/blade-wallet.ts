@@ -1,6 +1,7 @@
 import { BladeConnector, ConnectorStrategy } from '@bladelabs/blade-web3.js';
 import { NETWORK } from '../../config';
 import { AccountBalanceQuery, Client, TokenAssociateTransaction, TokenBalanceJson } from '@hashgraph/sdk';
+import { Long } from '@hashgraph/sdk/lib/long';
 
 export class BladeWallet {
     name = 'blade';
@@ -14,7 +15,7 @@ export class BladeWallet {
     };
     bladeConnector: any = null;
     setWallet: any;
-    associatedTokens: TokenBalanceJson[] | null = null;
+    associatedTokens: Map<string, Long> | undefined;
 
     constructor(setWallet: any) {
         this.setWallet = setWallet;
@@ -24,10 +25,13 @@ export class BladeWallet {
         this.setWallet({
             name: this.name,
             address: this.address,
+            associatedTokens: this.associatedTokens,
             signer: this.signer,
             auth: this.auth.bind(this),
             signTransaction: this.signTransaction.bind(this),
             executeTransaction: this.executeTransaction.bind(this),
+            associateNewToken: this.associateNewToken.bind(this),
+            updateBalance: this.updateBalance.bind(this),
         });
     }
 
@@ -58,10 +62,10 @@ export class BladeWallet {
     getBalance = async () => {
         if (this.bladeConnector) {
             const client = NETWORK === 'testnet' ? Client.forTestnet() : Client.forMainnet();
-            const tokens = await new AccountBalanceQuery().setAccountId(this.address).execute(client);
-            this.associatedTokens = tokens.toJSON().tokens;
+            const balance = await new AccountBalanceQuery().setAccountId(this.address).execute(client);
+            this.associatedTokens = balance.tokens?._map;
         } else {
-            this.associatedTokens = null;
+            this.associatedTokens = undefined;
         }
         this.refreshWallet();
     }
@@ -99,7 +103,6 @@ export class BladeWallet {
     async executeTransaction(transaction: any) {
         const res = await transaction.executeWithSigner(this.signer);
 
-        console.log(res);
         return {
             error: res.success ? null : res.error,
             res: res.response,
