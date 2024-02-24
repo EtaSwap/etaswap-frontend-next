@@ -18,4 +18,5 @@ export type SortedPrice = {
     amountIn: BigNumber;
     amountOut: BigNumber;
     priceImpact: number;
+    gas: number;
 }

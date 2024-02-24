@@ -5,11 +5,6 @@ import { HSuiteGetToken } from './types/tokens';
 import { ContractId, TokenId } from '@hashgraph/sdk';
 // @ts-ignore
 import HSuiteLogo from '../../assets/img/hsuite.png';
-import { NETWORKS } from '../../utils/constants';
-import { Price } from './types/price';
-import { BigNumber, ethers } from 'ethers';
-import axios from 'axios';
-import { sqrt } from '../../utils/utils';
 import { HSUITE_API_KEY } from '../../config';
 
 export class HSuite extends Provider {

@@ -9,7 +9,7 @@ import { AggregatorId } from './class/providers/types/props';
 export const NETWORK: string = 'testnet';
 export const MIRRORNODE: string = 'https://testnet.mirrornode.hedera.com';
 export const TOKEN_LIST: string[] = tokenListTestnet;
-export const DEFAULT_TOKENS: number[] = [0, 4];
+export const DEFAULT_TOKENS: number[] = [0, 2];
 export const PROVIDERS: Partial<Record<AggregatorId, Provider>> = {
     SaucerSwapV2: new SaucerSwapV2({
         getTokensUrl: 'https://test-api.saucerswap.finance/tokens',
@@ -24,6 +24,9 @@ export const PROVIDERS: Partial<Record<AggregatorId, Provider>> = {
     })
 };
 export const EXCHANGE_ADDRESS = '0.0.3587210';
+export const WHBAR_LIST = [
+    '0x0000000000000000000000000000000000003ad2'
+];
 export const HSUITE_API_KEY = '25f54dd3-47a1-4667-b9d8-2863585bc460';
 export const HSUITE_NODES: HSuiteNodeConfig[] = [
     {

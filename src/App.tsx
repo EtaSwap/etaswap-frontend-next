@@ -24,7 +24,7 @@ import { IWallet, IWallets, typeWallet } from "./models";
 import AppRouter from "./router";
 import { Token } from './types/token';
 import { GetToken, HeliSwapGetToken, HSuiteGetToken, } from './class/providers/types/tokens';
-import { MIRRORNODE, NETWORK, PROVIDERS, TOKEN_LIST } from './config';
+import { MIRRORNODE, NETWORK, PROVIDERS, TOKEN_LIST, WHBAR_LIST } from './config';
 import { toastTypes } from './models/Toast';
 import { AggregatorId } from './class/providers/types/props';
 
@@ -109,6 +109,9 @@ function App() {
                                 }
                                 solidityAddress = `0x${ContractId.fromString((token as HSuiteGetToken).id).toSolidityAddress()}`.toLowerCase();
                                 break;
+                        }
+                        if (WHBAR_LIST.includes(solidityAddress)) {
+                            return;
                         }
                         const existing = tokenMap.get(solidityAddress);
                         if (existing) {

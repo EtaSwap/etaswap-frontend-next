@@ -1,27 +1,29 @@
 import { Input, message } from 'antd'
 import { ArrowDownOutlined } from '@ant-design/icons'
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BigNumber, ethers } from 'ethers';
 import {
+    AccountAllowanceApproveTransaction,
     ContractExecuteTransaction,
     ContractFunctionParameters,
-    AccountAllowanceApproveTransaction, Transaction, TransferTransaction,
+    Transaction,
+    TransferTransaction,
 } from '@hashgraph/sdk';
 import axios from 'axios';
-import { GAS_LIMITS } from '../../utils/constants';
 import { SmartNodeSocket } from '../../class/smart-node-socket';
 import { useLoader } from "../../components/Loader/LoaderContext";
 import { useToaster } from "../../components/Toaster/ToasterContext";
-import { defaultTokens } from "./swap.utils";
+import { sortTokens } from "./swap.utils";
 import { SlippageTolerance } from "./Components/SlippageTolerance/SlippageTolerance";
 import { TokensModal } from "./Components/TokensModal/TokensModal";
 import { toastTypes } from "../../models/Toast";
 import { Token } from '../../types/token';
 import { Provider } from '../../class/providers/provider';
-import {IAssociatedButton, typeWallet} from "../../models";
+import { IAssociatedButton, typeWallet } from "../../models";
 import useDebounce from "../../hooks/useDebounce";
 import { SortedPrice } from '../../types/sorted-price';
-import { DEFAULT_TOKENS, EXCHANGE_ADDRESS, HSUITE_NODES, MIRRORNODE } from '../../config';
+import { DEFAULT_TOKENS, EXCHANGE_ADDRESS, HSUITE_NODES, MIRRORNODE, WHBAR_LIST } from '../../config';
+import { AggregatorId } from '../../class/providers/types/props';
 
 export interface ISwapProps {
     wallet: any;
@@ -31,10 +33,10 @@ export interface ISwapProps {
 }
 
 function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
-    const { loading, showLoader, hideLoader } = useLoader();
+    const { showLoader, hideLoader } = useLoader();
     const { showToast } = useToaster();
 
-    const tokens = defaultTokens(tokensMap);
+    const tokens = sortTokens(tokensMap);
     const [tokenOneAmountInput, setTokenOneAmountInput] = useState<any>(0);
     const [tokenTwoAmountInput, setTokenTwoAmountInput] = useState<any>(0);
     const [tokenOneAmount, setTokenOneAmount] = useState<any>(0);
@@ -189,29 +191,6 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
         setCheckAllRatesOpen(!checkAllRatesOpen);
     }
 
-    const getGasPrice = (providerName: any) => {
-        if (!tokenOne || !tokenTwo) {
-            return 0;
-        }
-        if (feeOnTransfer) {
-            if (tokenOne.solidityAddress === ethers.constants.AddressZero) {
-                return GAS_LIMITS[providerName].HBARToExactToken;
-            } else if (tokenTwo.solidityAddress === ethers.constants.AddressZero) {
-                return GAS_LIMITS[providerName].tokenToExactHBAR;
-            } else {
-                return GAS_LIMITS[providerName].tokenToExactToken;
-            }
-        } else {
-            if (tokenOne.solidityAddress === ethers.constants.AddressZero) {
-                return GAS_LIMITS[providerName].exactHBARToToken;
-            } else if (tokenTwo.solidityAddress === ethers.constants.AddressZero) {
-                return GAS_LIMITS[providerName].exactTokenToHBAR;
-            } else {
-                return GAS_LIMITS[providerName].exactTokenToToken;
-            }
-        }
-    }
-
     const fetchDex = async () => {
         const deadline = Math.floor(Date.now() / 1000) + 1000;
 
@@ -222,10 +201,10 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
                 content: 'Failed to fetch rate',
                 duration: 2
             });
-            return null;
+            return;
         }
 
-        if (bestRate.name === 'HSuite') {
+        if (bestRate.aggregatorId === AggregatorId.HSuite) {
             showLoader();
             const socketConnection: any = await smartNodeSocket();
             socketConnection.socket.getSocket('gateway').on('swapPoolRequest', async (resPool: any) => {
@@ -322,7 +301,7 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
             });
         } else {
             showLoader();
-            if (tokenOne.solidityAddress !== ethers.constants.AddressZero) {
+            if (!WHBAR_LIST.includes(tokenOne.solidityAddress)) {
                 const allowanceTx = await new AccountAllowanceApproveTransaction()
                     .approveTokenAllowance(
                         tokenOne.address,
@@ -353,11 +332,10 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
 
             let swapTransaction = await new ContractExecuteTransaction()
                 .setContractId(EXCHANGE_ADDRESS)
-                .setGas(getGasPrice(bestRate.name))
-                .setFunction("swap", new ContractFunctionParameters()
-                    .addString(providers[bestRate.name].aggregatorId)
-                    .addAddress(tokenOne.solidityAddress)
-                    .addAddress(tokenTwo.solidityAddress)
+                .setGas(bestRate.gas)
+                .setFunction('swap', new ContractFunctionParameters()
+                    .addString(bestRate.aggregatorId)
+                    .addString(bestRate.path)
                     .addUint256(
                         // @ts-ignore
                         feeOnTransfer
@@ -371,9 +349,10 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
                             : ethers.utils.parseUnits(tokenTwoAmount, tokenTwo.decimals).mul(1000 - slippage * 10).div(1000).toString()
                     )
                     .addUint256(deadline)
+                    .addBool(WHBAR_LIST.includes(tokenOne.solidityAddress))
                     .addBool(feeOnTransfer)
                 )
-                .setPayableAmount(tokenOne.solidityAddress === ethers.constants.AddressZero
+                .setPayableAmount(WHBAR_LIST.includes(tokenOne.solidityAddress)
                     ? (feeOnTransfer
                             ? ethers.utils.formatUnits(ethers.utils.parseUnits(tokenOneAmount, 8).mul(1000 + slippage * 10).div(1000), 8)
                             : ethers.utils.formatUnits(ethers.utils.parseUnits(tokenOneAmount, 8), 8)
@@ -442,18 +421,14 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
 
     const getNetworkFee = () => {
         const bestPrice = sortedPrices?.[0];
-        if (!rate || !tokenOne || !tokenTwo || !bestPrice?.name) {
+        if (!rate || !tokenOne || !tokenTwo || !bestPrice?.aggregatorId) {
             return 0;
         }
-        if (bestPrice.name === 'HSuite') {
+        if (bestPrice.aggregatorId === AggregatorId.HSuite) {
             return rate * 0.0016;
         }
-        const gasPrice = getGasPrice(bestPrice.name);
-        if (gasPrice === 0) {
-            return 0;
-        }
         const approxCost1Gas = 0.000000082;
-        return rate * gasPrice * approxCost1Gas;
+        return rate * bestPrice.gas * approxCost1Gas;
     }
 
     const fetchPrices = (): void => {
@@ -465,12 +440,14 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
                 path: '0x000100101',
                 amountIn: BigNumber.from('2400000000'),
                 amountOut: BigNumber.from('4000000000'),
+                gas: 200000,
             }, {
                 transactionType: 'SWAP',
                 aggregatorId: 'HSuite',
                 path: '0x0001001014894874874873931111119494949499991111',
                 amountIn: BigNumber.from('2400000000'),
                 amountOut: BigNumber.from('3900000000'),
+                gas: 400000,
             }] as any);
         }, 700);
     }
