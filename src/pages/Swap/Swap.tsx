@@ -6,7 +6,6 @@ import {
     AccountAllowanceApproveTransaction,
     ContractExecuteTransaction,
     ContractFunctionParameters,
-    TokenBalanceJson,
     Transaction,
     TransferTransaction,
 } from '@hashgraph/sdk';
@@ -20,7 +19,7 @@ import { TokensModal } from "./Components/TokensModal/TokensModal";
 import { toastTypes } from "../../models/Toast";
 import { Token } from '../../types/token';
 import { Provider } from '../../class/providers/provider';
-import { IAssociatedButton, typeWallet } from "../../models";
+import { typeWallet } from "../../models";
 import useDebounce from "../../hooks/useDebounce";
 import { SortedPrice } from '../../types/sorted-price';
 import {
@@ -671,7 +670,10 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
 
                 <div className='ratesLogoWrapper'>
                     <div className='ratesLogoInner'>
-                        <span className='ratesLogoTop'>Best rate: {getBestPriceDescr()}</span>
+                        <span className='ratesLogoTop'>
+                            { feeOnTransfer ? 'Amount to spend: ' : 'Amount to receive: '}
+                            {ethers.utils.formatUnits((feeOnTransfer ? sortedPrices?.[0]?.amountIn : sortedPrices?.[0]?.amountOut) || 0, feeOnTransfer ? tokenOne?.decimals : tokenTwo?.decimals)}
+                        </span>
                         <button className='ratesLogoToggle'
                                 onClick={() => switchAllRates()}>{checkAllRatesOpen ? 'Hide all rates' : 'Show all rates'}</button>
                     </div>
@@ -680,7 +682,7 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
                             <div
                                 className='ratesLogo' key={aggregatorId}>
                                 <img className='ratesLogoIcon' title={aggregatorId} src={providers[aggregatorId].icon}
-                                     alt={aggregatorId}/> {ethers.utils.formatUnits(feeOnTransfer ? amountIn : amountOut, feeOnTransfer ? tokenOne?.decimals : tokenTwo.decimals)}
+                                     alt={aggregatorId}/> {ethers.utils.formatUnits(feeOnTransfer ? amountIn : amountOut, feeOnTransfer ? tokenOne?.decimals : tokenTwo?.decimals)}
                             </div>)
                         : ''
                     }
