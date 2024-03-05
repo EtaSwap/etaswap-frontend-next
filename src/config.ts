@@ -33,7 +33,8 @@ export const PROVIDERS: Partial<Record<AggregatorId, Provider>> = {
         getTokensUrl: 'https://mainnet-sn1.hbarsuite.network/tokens/list',
     })
 };
-export const EXCHANGE_ADDRESS = ''; //TODO: smart-contact
+export const EXCHANGE_ADDRESS = '0.0.4817907';
+export const API = 'http://ec2-34-207-192-189.compute-1.amazonaws.com:3000/api';
 export const WHBAR_LIST = [
     '0x0000000000000000000000000000000000163b5a',
     '0x00000000000000000000000000000000001a8837',

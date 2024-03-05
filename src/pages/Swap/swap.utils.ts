@@ -9,3 +9,5 @@ export const sortTokens = (tokensMap: any) => ([...tokensMap]
             )
     )
 );
+
+export const bytesFromHex = (hex: string) => Uint8Array.from(hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)));

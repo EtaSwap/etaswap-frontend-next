@@ -1,6 +1,6 @@
 import { Input, Modal } from "antd";
 import { useEffect } from "react";
-import { IToken } from "../../../../models";
+import { Token } from '../../../../types/token';
 
 export function TokensModal({
                                 isOpen,
@@ -18,7 +18,7 @@ export function TokensModal({
         const lowerCase = searchPhrase.toLowerCase();
         const hiddenTokens: any = [];
         if (lowerCase) {
-            tokens.forEach((token: IToken, i: any) => {
+            tokens.forEach((token: Token, i: any) => {
                 if (
                     !token.symbol.toLowerCase().includes(lowerCase)
                     && !token.name.toLowerCase().includes(lowerCase)
@@ -46,7 +46,7 @@ export function TokensModal({
                 />
             </div>
             <div className='token__list'>
-                {tokens?.map((token: IToken, index: any) => {
+                {tokens?.map((token: Token, index: any) => {
                     return (
                         <div
                             className={'tokenChoice' + (hiddenTokens.includes(index) ? ' hidden' : '')}

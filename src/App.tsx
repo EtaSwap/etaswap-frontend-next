@@ -104,7 +104,10 @@ function App() {
                             case AggregatorId.SaucerSwapV1:
                             case AggregatorId.SaucerSwapV2:
                             case AggregatorId.Pangolin:
-                                solidityAddress = `0x${ContractId.fromString((token as Exclude<GetToken, HeliSwapGetToken>).id).toSolidityAddress()}`.toLowerCase();
+                                const tokenId = (token as Exclude<GetToken, HeliSwapGetToken>)?.id;
+                                if (tokenId) {
+                                    solidityAddress = `0x${ContractId.fromString(tokenId).toSolidityAddress()}`.toLowerCase();
+                                }
                                 break;
                             case AggregatorId.HeliSwap:
                                 solidityAddress = (token as HeliSwapGetToken).address.toLowerCase();
@@ -116,12 +119,14 @@ function App() {
                                 solidityAddress = `0x${ContractId.fromString((token as HSuiteGetToken).id).toSolidityAddress()}`.toLowerCase();
                                 break;
                         }
-                        if (WHBAR_LIST.includes(solidityAddress)) {
+                        if (!solidityAddress || WHBAR_LIST.includes(solidityAddress)) {
                             return;
                         }
                         const existing = tokenMap.get(solidityAddress);
                         if (existing) {
-                            existing.providers.push(aggregatorId);
+                            if (!existing.providers.includes(aggregatorId)){
+                                existing.providers.push(aggregatorId);
+                            }
                         } else if (
                             aggregatorId === AggregatorId.HSuite
                             || etaSwapTokenList.has(ContractId.fromSolidityAddress(solidityAddress).toString())

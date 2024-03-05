@@ -13,7 +13,7 @@ import axios from 'axios';
 import { SmartNodeSocket } from '../../class/smart-node-socket';
 import { useLoader } from "../../components/Loader/LoaderContext";
 import { useToaster } from "../../components/Toaster/ToasterContext";
-import { sortTokens } from "./swap.utils";
+import {bytesFromHex, sortTokens} from "./swap.utils";
 import { SlippageTolerance } from "./Components/SlippageTolerance/SlippageTolerance";
 import { TokensModal } from "./Components/TokensModal/TokensModal";
 import { toastTypes } from "../../models/Toast";
@@ -23,6 +23,7 @@ import { typeWallet } from "../../models";
 import useDebounce from "../../hooks/useDebounce";
 import { SortedPrice } from '../../types/sorted-price';
 import {
+    API,
     DEFAULT_TOKENS,
     EXCHANGE_ADDRESS,
     HSUITE_NODES,
@@ -203,7 +204,7 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
         const deadline = Math.floor(Date.now() / 1000) + 1000;
 
         const bestRate = sortedPrices?.[0];
-        if (!bestRate?.price || bestRate.price.eq(0)) {
+        if (!bestRate?.amountIn || !bestRate?.amountOut || !bestRate?.path){
             messageApi.open({
                 type: 'error',
                 content: 'Failed to fetch rate',
@@ -309,7 +310,7 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
             });
         } else {
             showLoader();
-            if (!WHBAR_LIST.includes(tokenOne.solidityAddress)) {
+            if (tokenOne.solidityAddress !== ethers.constants.AddressZero) {
                 const allowanceTx = await new AccountAllowanceApproveTransaction()
                     .approveTokenAllowance(
                         tokenOne.address,
@@ -338,32 +339,47 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
             //prevent double-firing approval event on HashPack
             await new Promise(resolve => setTimeout(resolve, 500));
 
+            // string calldata aggregatorId,
+            //     bytes calldata path,
+            //     uint256 amountFrom,
+            //     uint256 amountTo,
+            //     uint256 deadline,
+            //     bool isTokenFromHBAR,
+            //     bool feeOnTransfer
+            console.log(bestRate);
+            console.log(tokenOne);
+            console.log(tokenOne.solidityAddress === ethers.constants.AddressZero
+                ? (feeOnTransfer
+                        ? ethers.utils.formatUnits(bestRate.amountIn.mul(1000 + slippage * 10).div(1000), 8)
+                        : ethers.utils.formatUnits(bestRate.amountIn, 8)
+                )
+                : 0);
             let swapTransaction = await new ContractExecuteTransaction()
                 .setContractId(EXCHANGE_ADDRESS)
-                .setGas(bestRate.gas)
+                .setGas(bestRate.gasEstimate)
                 .setFunction('swap', new ContractFunctionParameters()
                     .addString(bestRate.aggregatorId)
-                    .addString(bestRate.path)
+                    .addBytes(bytesFromHex(bestRate.path.substring(2)))
                     .addUint256(
                         // @ts-ignore
                         feeOnTransfer
-                            ? ethers.utils.parseUnits(tokenOneAmount, tokenOne.decimals).mul(1000 + slippage * 10).div(1000).toString()
-                            : ethers.utils.parseUnits(tokenOneAmount, tokenOne.decimals).toString()
+                            ? bestRate.amountIn.mul(1000 + slippage * 10).div(1000).toString()
+                            : bestRate.amountIn.toString()
                     )
                     .addUint256(
                         // @ts-ignore
                         feeOnTransfer
-                            ? ethers.utils.parseUnits(tokenTwoAmount, tokenTwo.decimals).toString()
-                            : ethers.utils.parseUnits(tokenTwoAmount, tokenTwo.decimals).mul(1000 - slippage * 10).div(1000).toString()
+                            ? bestRate.amountOut.toString()
+                            : bestRate.amountOut.mul(1000 - slippage * 10).div(1000).toString()
                     )
                     .addUint256(deadline)
-                    .addBool(WHBAR_LIST.includes(tokenOne.solidityAddress))
+                    .addBool(tokenOne.solidityAddress === ethers.constants.AddressZero)
                     .addBool(feeOnTransfer)
                 )
-                .setPayableAmount(WHBAR_LIST.includes(tokenOne.solidityAddress)
+                .setPayableAmount(tokenOne.solidityAddress === ethers.constants.AddressZero
                     ? (feeOnTransfer
-                            ? ethers.utils.formatUnits(ethers.utils.parseUnits(tokenOneAmount, 8).mul(1000 + slippage * 10).div(1000), 8)
-                            : ethers.utils.formatUnits(ethers.utils.parseUnits(tokenOneAmount, 8), 8)
+                            ? ethers.utils.formatUnits(bestRate.amountIn.mul(1000 + slippage * 10).div(1000), 8)
+                            : ethers.utils.formatUnits(bestRate.amountIn, 8)
                     )
                     : 0)
                 .freezeWithSigner(wallet.signer);
@@ -441,28 +457,28 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
             return rate * 0.0016;
         }
         const approxCost1Gas = 0.000000082;
-        return rate * bestPrice.gas * approxCost1Gas;
+        return rate * bestPrice.gasEstimate * approxCost1Gas;
     }
 
-    const fetchPrices = (): void => {
-        //TODO: fetch prices by backend API
-        setTimeout(() => {
-            setSortedPrices([{
-                transactionType: 'SWAP',
-                aggregatorId: 'HSuite',
-                path: '0x000100101',
-                amountIn: BigNumber.from('2400000000'),
-                amountOut: BigNumber.from('4000000000'),
-                gas: 200000,
-            }, {
-                transactionType: 'SWAP',
-                aggregatorId: 'SaucerSwapV1',
-                path: '0x0001001014894874874873931111119494949499991111',
-                amountIn: BigNumber.from('2400000000'),
-                amountOut: BigNumber.from('3900000000'),
-                gas: 400000,
-            }] as any);
-        }, 700);
+    const fetchPrices = async (): Promise<void> => {
+        if (!tokenOne?.solidityAddress || !tokenTwo?.solidityAddress) {
+            return;
+        }
+        try {
+            const amount = feeOnTransfer
+                ? ethers.utils.parseUnits(tokenTwoAmount, tokenTwo.decimals).toString()
+                : ethers.utils.parseUnits(tokenOneAmount, tokenOne.decimals).toString();
+            const req = `${API}/rates/fetch-rates/v2?tokenFrom=${tokenOne.solidityAddress}&tokenTo=${tokenTwo.solidityAddress}&amount=${amount}&isReverse=${feeOnTransfer.toString()}`;
+            const res = await axios.get(req);
+            setSortedPrices(res.data.map((price: any) => ({
+                ...price,
+                amountIn: BigNumber.from(price.amountFrom),
+                amountOut: BigNumber.from(price.amountTo),
+            })));
+        } catch (e) {
+            console.log(e);
+            showToast('Error API response', JSON.stringify(e), toastTypes.error);
+        }
     }
 
     const refreshRate = () => {
@@ -678,11 +694,12 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
                                 onClick={() => switchAllRates()}>{checkAllRatesOpen ? 'Hide all rates' : 'Show all rates'}</button>
                     </div>
                     {checkAllRatesOpen
-                        ? sortedPrices.map(({ aggregatorId, amountIn, amountOut }: any) =>
+                        ? sortedPrices.map(({ aggregatorId, amountIn, amountOut, extension }: any) =>
                             <div
                                 className='ratesLogo' key={aggregatorId}>
                                 <img className='ratesLogoIcon' title={aggregatorId} src={providers[aggregatorId].icon}
                                      alt={aggregatorId}/> {ethers.utils.formatUnits(feeOnTransfer ? amountIn : amountOut, feeOnTransfer ? tokenOne?.decimals : tokenTwo?.decimals)}
+                                { extension?.hSuiteFee ? ` (${extension.hSuiteFee})` : '' }
                             </div>)
                         : ''
                     }
