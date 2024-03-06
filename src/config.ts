@@ -11,7 +11,7 @@ import { HeliSwap } from './class/providers/heli-swap';
 export const NETWORK: string = 'mainnet';
 export const MIRRORNODE: string = 'https://mainnet-public.mirrornode.hedera.com';
 export const TOKEN_LIST: string[] = tokenListMainnet;
-export const DEFAULT_TOKENS: number[] = [0, 2];
+export const DEFAULT_TOKENS: number[] = [0, 3];
 export const PROVIDERS: Partial<Record<AggregatorId, Provider>> = {
     SaucerSwapV2: new SaucerSwapV2({
         getTokensUrl: 'https://api.saucerswap.finance/tokens',
