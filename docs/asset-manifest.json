@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/static/css/main.fefde80f.css",
-    "main.js": "/static/js/main.cf719627.js",
+    "main.js": "/static/js/main.3702e4ba.js",
     "static/media/hsuite.png": "/static/media/hsuite.0e7a3cce7ed97e875494.png",
     "static/media/pangolin.png": "/static/media/pangolin.536ec485f1c5157a1b53.png",
     "static/media/saucerswapv2.png": "/static/media/saucerswapv2.2bc413e1be473d3df1e9.png",
@@ -15,6 +15,6 @@
   },
   "entrypoints": [
     "static/css/main.fefde80f.css",
-    "static/js/main.cf719627.js"
+    "static/js/main.3702e4ba.js"
   ]
 }
