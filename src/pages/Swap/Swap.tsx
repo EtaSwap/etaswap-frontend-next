@@ -468,7 +468,7 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
             const amount = feeOnTransfer
                 ? ethers.utils.parseUnits(tokenTwoAmount, tokenTwo.decimals).toString()
                 : ethers.utils.parseUnits(tokenOneAmount, tokenOne.decimals).toString();
-            const req = `${API}/rates/fetch-rates/v2?tokenFrom=${tokenOne.solidityAddress}&tokenTo=${tokenTwo.solidityAddress}&amount=${amount}&isReverse=${feeOnTransfer.toString()}`;
+            const req = `${API}/rates?tokenFrom=${tokenOne.solidityAddress}&tokenTo=${tokenTwo.solidityAddress}&amount=${amount}&isReverse=${feeOnTransfer.toString()}`;
             const res = await axios.get(req);
             setSortedPrices(res.data.map((price: any) => ({
                 ...price,
