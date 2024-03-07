@@ -260,9 +260,9 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
 
             let amountFromHsuite = ethers.utils.parseUnits(tokenOneAmount, tokenOne.decimals);
             if (tokenOne.solidityAddress === ethers.constants.AddressZero) {
-                amountFromHsuite = amountFromHsuite.mul(1000 - providers[bestRate.name].feePromille).div(1000);
+                amountFromHsuite = amountFromHsuite.mul(1000 - providers[bestRate.aggregatorId].feePromille).div(1000);
             } else if (tokenOne.symbol === 'HSUITE') {
-                const hSuiteFee = Math.max(10000, amountFromHsuite.mul(providers[bestRate.name].feeDEXPromille).div(1000).toNumber());
+                const hSuiteFee = Math.max(10000, amountFromHsuite.mul(providers[bestRate.aggregatorId].feeDEXPromille).div(1000).toNumber());
                 amountFromHsuite = amountFromHsuite.sub(hSuiteFee);
             }
 
@@ -411,11 +411,6 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
         setTokenTwoAmountInput('0');
         setTokenOneAmount('0');
         setTokenTwoAmount('0');
-    }
-
-    const getBestPriceDescr = () => {
-        const bestPrice = sortedPrices?.[0];
-        return parseFloat(convertPrice(bestPrice?.price))?.toFixed(6);
     }
 
     const swapAvailable = () => {

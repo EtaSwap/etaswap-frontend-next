@@ -6,11 +6,6 @@ export enum TransactionType {
 }
 
 export type SortedPrice = {
-    //input
-    name: string;
-    weight: BigNumber;
-    price: BigNumber;
-
     //output
     transactionType: TransactionType,
     aggregatorId: AggregatorId,
