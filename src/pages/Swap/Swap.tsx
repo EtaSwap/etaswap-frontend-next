@@ -1,7 +1,7 @@
-import { Input, message } from 'antd'
-import { ArrowDownOutlined } from '@ant-design/icons'
-import { useEffect, useRef, useState } from 'react'
-import { BigNumber, ethers } from 'ethers';
+import {Input, message} from 'antd'
+import {ArrowDownOutlined} from '@ant-design/icons'
+import {useEffect, useRef, useState} from 'react'
+import {BigNumber, ethers} from 'ethers';
 import {
     AccountAllowanceApproveTransaction,
     ContractExecuteTransaction,
@@ -10,28 +10,20 @@ import {
     TransferTransaction,
 } from '@hashgraph/sdk';
 import axios from 'axios';
-import { SmartNodeSocket } from '../../class/smart-node-socket';
-import { useLoader } from "../../components/Loader/LoaderContext";
-import { useToaster } from "../../components/Toaster/ToasterContext";
+import {SmartNodeSocket} from '../../class/smart-node-socket';
+import {useLoader} from "../../components/Loader/LoaderContext";
+import {useToaster} from "../../components/Toaster/ToasterContext";
 import {bytesFromHex, sortTokens} from "./swap.utils";
-import { SlippageTolerance } from "./Components/SlippageTolerance/SlippageTolerance";
-import { TokensModal } from "./Components/TokensModal/TokensModal";
-import { toastTypes } from "../../models/Toast";
-import { Token } from '../../types/token';
-import { Provider } from '../../class/providers/provider';
-import { typeWallet } from "../../models";
+import {SlippageTolerance} from "./Components/SlippageTolerance/SlippageTolerance";
+import {TokensModal} from "./Components/TokensModal/TokensModal";
+import {toastTypes} from "../../models/Toast";
+import {Token} from '../../types/token';
+import {Provider} from '../../class/providers/provider';
+import {typeWallet} from "../../models";
 import useDebounce from "../../hooks/useDebounce";
-import { SortedPrice } from '../../types/sorted-price';
-import {
-    API,
-    DEFAULT_TOKENS,
-    EXCHANGE_ADDRESS,
-    HSUITE_NODES,
-    HSUITE_TOKEN_ADDRESS,
-    MIRRORNODE,
-    WHBAR_LIST
-} from '../../config';
-import { AggregatorId } from '../../class/providers/types/props';
+import {SortedPrice} from '../../types/sorted-price';
+import {API, DEFAULT_TOKENS, EXCHANGE_ADDRESS, HSUITE_NODES, HSUITE_TOKEN_ADDRESS, MIRRORNODE} from '../../config';
+import {AggregatorId} from '../../class/providers/types/props';
 import AssociateNewToken from './Components/AssociateNewToken/AssociateNewToken';
 
 export interface ISwapProps {
@@ -204,7 +196,7 @@ function Swap({ wallet, tokens: tokensMap, rate, providers }: ISwapProps) {
         const deadline = Math.floor(Date.now() / 1000) + 1000;
 
         const bestRate = sortedPrices?.[0];
-        if (!bestRate?.amountIn || !bestRate?.amountOut || !bestRate?.path){
+        if (!bestRate?.amountIn || !bestRate?.amountOut){
             messageApi.open({
                 type: 'error',
                 content: 'Failed to fetch rate',
